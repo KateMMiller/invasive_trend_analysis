@@ -1,0 +1,41 @@
+network,network_code,park,park_code
+Northeast Temperate Network,NETN,Acadia National Park,ACAD
+Northeast Temperate Network,NETN,Marsh-Billings-Rockefeller National Historical Park,MABI
+Northeast Temperate Network,NETN,Minute Man National Historical Park,MIMA
+Northeast Temperate Network,NETN,Morristown National Historical Park,MORR
+Northeast Temperate Network,NETN,Roosevelt-Vanderbilt National Historic Sites,ROVA
+Northeast Temperate Network,NETN,Saint-Gaudens National Historic Site,SAGA
+Northeast Temperate Network,NETN,Saratoga National Historical Park,SARA
+Northeast Temperate Network,NETN,Weir Farm National Historic Site,WEFA
+Northeast Coastal and Barrier Network,NCBN,Colonial National Historical Park,COLO
+Northeast Coastal and Barrier Network,NCBN,George Washington Birthplace National Monument,GEWA
+Northeast Coastal and Barrier Network,NCBN,Sagamore Hill National Historic Site,SAHI
+Northeast Coastal and Barrier Network,NCBN,Thomas Stone National Historic Site,THST
+Mid-Atlantic Network,MIDN,Appomattox Court House National Historical Park,APCO
+Mid-Atlantic Network,MIDN,Booker T. Washington National Monument,BOWA
+Mid-Atlantic Network,MIDN,Fredericksburg \& Spotsylvania National Military Park,FRSP
+Mid-Atlantic Network,MIDN,Gettysburg National Military Park,GETT
+Mid-Atlantic Network,MIDN,Hopewell Furnace National Historic Site,HOFU
+Mid-Atlantic Network,MIDN,Petersburg National Battlefield,PETE
+Mid-Atlantic Network,MIDN,Richmond National Battlefield Park,RICH
+Mid-Atlantic Network,MIDN,Shenandoah National Park,SHEN
+Mid-Atlantic Network,MIDN,Valley Forge National Historical Park,VAFO
+Eastern Rivers \& Mountains Network,ERMN,Allegheny Portage Railroad National Historic Site,ALPO
+Eastern Rivers \& Mountains Network,ERMN,Bluestone National Scenic River,BLUE
+Eastern Rivers \& Mountains Network,ERMN,Delaware Water Gap National Recreation Area,DEWA
+Eastern Rivers \& Mountains Network,ERMN,Fort Necessity National Battlefield,FONE
+Eastern Rivers \& Mountains Network,ERMN,Friendship Hill National Historic Site,FRHI
+Eastern Rivers \& Mountains Network,ERMN,Gauley River National Recreation Area,GARI
+Eastern Rivers \& Mountains Network,ERMN,Johnstown Flood National Memorial,JOFL
+Eastern Rivers \& Mountains Network,ERMN,New River Gorge National River,NERI
+National Capital Region Network,NCRN,Antietam National Battlefield,ANTI
+National Capital Region Network,NCRN,Catoctin Mountain Park,CATO
+National Capital Region Network,NCRN,Chesapeake and Ohio Canal National Historical Park,CHOH
+National Capital Region Network,NCRN,George Washington Memorial Parkway,GWMP
+National Capital Region Network,NCRN,Harpers Ferry National Historical Park,HAFE
+National Capital Region Network,NCRN,Manassas National Battlefield Park,MANA
+National Capital Region Network,NCRN,Monocacy National Battlefield,MONO
+National Capital Region Network,NCRN,National Capital Parks East,NACE
+National Capital Region Network,NCRN,Prince William Forest Park,PRWI
+National Capital Region Network,NCRN,Rock Creek Park,ROCR
+National Capital Region Network,NCRN,Wolf Trap Park for the Performing Arts,WOTR
