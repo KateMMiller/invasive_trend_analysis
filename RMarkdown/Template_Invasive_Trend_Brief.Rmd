@@ -272,6 +272,7 @@ Invasive guild trends varied by metric in `r site$park_code` (Figs 3-5). Invasiv
 [Placeholder for park-specific info on invasive species comp.]\break
 [Placeholder for park-specific info on invasive species comp.]\break
 [Placeholder for park-specific info on invasive species comp.]\break
+[Placeholder for park-specific info on invasive species comp.]\break
 
 ```{r 'avgcovByGuild', fig.height=3.4, fig.width=4, echo=F, warnings=F, results='hide', message=F, cache=F, fig.align='center'}
 gram_avgcov_g2<-suppressWarnings(gram_avgcov_g+
@@ -318,8 +319,8 @@ plots_g_avgcov2
 ```
 \vspace{-2pt}
 \small\textsf{Figure 3. Modeled invasive plant cover trends by guild. Each line represents a park. Solid lines are significant trends. {`r site$park_code`} is highlighted in red. Guilds found in <10\% of a park's plots and NCRN Trees (\% cover only) were not modeled or displayed.}
-\vspace{5pt}\pagebreak
-\vspace{5pt}\break
+\vspace{2pt}\pagebreak
+\vspace{2pt}
 ```{r 'qFreqByGuild', fig.height=3.4, fig.width=4, echo=F, warnings=F, results='hide', message=F, cache=F, fig.align='center'}
 gram_qfreq_g2<-suppressWarnings(gram_qfreq_g+
   geom_line(data=(qfreq_guild %>% filter(park==params$park_code,guild=='Graminoid')),
@@ -365,7 +366,7 @@ plots_g_qfreq2
 ```
 \flushleft\small\textsf{Figure 4. Trends in modeled invasive quadrat frequency by guild. See Figure 3 caption for more information.}
 \break
-\vspace*{-8pt}
+\vspace*{-10pt}
 ```{r 'pFreqByGuild', fig.height=3.4, fig.width=4, echo=F, warnings=F, results='hide', message=F, cache=F, fig.align='center'}
 gram_pfreq_g2<-suppressWarnings(gram_pfreq_g+
   geom_line(data=(pfreq_guild %>% filter(park==params$park_code,guild=='Graminoid')),
