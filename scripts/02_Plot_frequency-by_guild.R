@@ -26,10 +26,11 @@ df<- df %>% arrange(park,plot_name,cycle,guild)
 df2<-na.omit(df)
 # only include guilds with at least 10% of plots with that guild and <90% of all
 df3<-df2 %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
-  filter((park!='ACAD'& between(nonzero,0.1,0.99))|(park=='ACAD'& guild=='Shrub')) %>% 
+  filter((park!='ACAD'& between(nonzero,0.1,0.9))|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild) 
 
 df4<-df3 %>% filter(park!='SAHI') %>% droplevels()
+
 # FRHI Herbaceous, MIMA Shrub and SAHI Shrub are 100% present the whole time.
 # Several other park/guild combinations are close to 100%, which causes problems in glmer
 # Had to remove guilds that were 100 plot frequency in all cycles 
@@ -50,21 +51,17 @@ PFreq.mod<-function(df) {
     control=glmerCtlList,data=df)} 
   } # random slope had singular fit, so went with simpler rand. intercept
 
-prelim_by_park_PF_G<-df_park %>% mutate(model=map(data,PFreq.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
+#prelim_by_park_PF_G<-df_park %>% mutate(model=map(data,PFreq.mod),
+#  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 #tidy(PFreq.mod(df_park$data[[34]])) #SAHI not working [[34]]
 
-diag_PF_G<-unnest(prelim_by_park_PF_G, resids, pred)
-res_PF_G<-residPlot(diag_PF_G)
-hist_PF_G<-histPlot(diag_PF_G) 
-
 # Check conversion
-conv_PF_G<-unlist(prelim_by_park_PF_G[['model']]) %>% map('optinfo') %>% 
-  map('conv') %>% map('opt') %>% data.frame() %>% gather() 
+#conv_PF_G<-unlist(prelim_by_park_PF_G[['model']]) %>% map('optinfo') %>% 
+#  map('conv') %>% map('opt') %>% data.frame() %>% gather() 
 
-conv.tbl_PF_G<-data.frame(cbind(park=levels(diag_PF_G$park),conv.code=conv_PF_G$value))
-conv.tbl_PF_G # all 0s. 
+#conv.tbl_PF_G<-data.frame(cbind(park=levels(diag_PF_G$park),conv.code=conv_PF_G$value))
+#conv.tbl_PF_G # all 0s. 
 
 #-----------------------------------
 ##  ----  model_PF_G  ---- 
@@ -108,7 +105,7 @@ results_PF_G<-results_PF_G %>% mutate(guild=guild_labels2_PF_G$guild2,
 #-----------------------------------
 by_park_coefs_PF_G<-by_park_PF_G %>% 
   mutate(conf.coef=map(model,~bootMer(.x,FUN=fixef,nsim=1000, parallel='snow',
-    ncpus=3))) %>% 
+    ncpus=7))) %>% 
   select(conf.coef)  
 
 coefs_PF_G<-by_park_coefs_PF_G %>% 
@@ -151,7 +148,7 @@ results_final_PF_G<-results5_PF_G %>%
 
 write.csv(results_final_PF_G,'./results/results_PFreq-by_guild-coefs.csv', row.names=F)
 
-#View(results_final_PF_G)
+View(results_final_PF_G)
 
 # Did not bootstrap for responses like other metrics. Ultimately only interested if the odds
 # of a plot having an invasive increases over time, which we get at with the coefs. 
