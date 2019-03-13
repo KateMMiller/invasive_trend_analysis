@@ -57,10 +57,10 @@ dev.off()
 #-----------------------------------------------
 # Plot Frequency - Total
 #-----------------------------------------------
-pfreq_total_coefs<-read.csv(paste0(path,'/results/results_PFreq-total-coefs.csv'))
+pfreq_total_coefs<-read.csv('./results/results_PFreq-total-coefs.csv')
 pfreq_total_slopes<-pfreq_total_coefs %>% filter(coef=='Slope') %>% droplevels()
 
-df<-read.csv(paste0(path,"/data/NETN-MIDN-ERMN-NCRN_total_invasives.csv"))#[,-c(1,2)]
+df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_total_invasives.csv")#[,-c(1,2)]
 df_pf<- df %>% arrange(park,plot_name,cycle) %>% select(park,plot_name,cycle,lat.rank,plot.freq)
 df_pf2<-df_pf %>% group_by(park,cycle) %>% 
   summarise(plot.freq=sum(plot.freq), num.plots=n(),pfreq=round(((plot.freq/num.plots)*100),2), lat.rank=first(lat.rank))
@@ -77,9 +77,6 @@ plot_pfreq_t<-plotFreqParkTotal(pfreq_total_comb)
 tiff(file='./results/figures/pfreq_total_sameY.tiff',units='px',width=12.5*ppi,height=9*ppi,res=300)
 plot_pfreq_t
 dev.off()
-
-pfreq100<-pfreq_total_comb %>% filter(pfreq==100)
-View(pfreq_total_comb)
 
 #-----------------------------------------------
 # Average % Cover - by Guild
@@ -133,10 +130,10 @@ dev.off()
 #----------------------------------
 # Plot frequency by guild
 #----------------------------------
-pfreq_guild_coefs<-read.csv(paste0(path,'/results/results_pfreq-by_guild-coefs.csv'))
+pfreq_guild_coefs<-read.csv('./results/results_pfreq-by_guild-coefs.csv')
 pfreq_guild_slopes<-pfreq_guild_coefs %>% filter(coef=='Slope') %>% droplevels()
 
-df<-read.csv(paste0(path,"/data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv"))#[,-c(1,2)]
+df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv")#[,-c(1,2)]
 df_pf<- df %>% arrange(park,plot_name,cycle,guild) %>% select(park,plot_name,cycle,guild,lat.rank,plot.freq)
 df_pf2<-df_pf %>% group_by(park,guild,cycle) %>% 
   summarise(plot.freq=sum(plot.freq), num.plots=n(),pfreq=round(((plot.freq/num.plots)*100),2), lat.rank=first(lat.rank))
@@ -147,6 +144,10 @@ pfreq_guild_comb$sign[is.na(pfreq_guild_comb$sign)]<-0
 
 pfreq_guild_comb<- pfreq_guild_comb %>% arrange(lat.rank) %>% 
   mutate(cycle2=as.factor(cycle),sign=as.factor(sign), park=reorder(park, -lat.rank))
+
+pfreq_guild_comb$guild<-fct_relevel(pfreq_guild_comb$guild,c('Shrub','Herbaceous','Graminoid', 'Tree'))
+
+levels(pfreq_guild_comb$guild)
 
 plot_pfreq_g<-plotFreqParkGuild(pfreq_guild_comb)
 

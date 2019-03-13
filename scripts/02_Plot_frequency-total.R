@@ -27,7 +27,7 @@ df2<-df %>% filter(!is.na(plot.freq))
 
 # only include guilds with at least 10% of plots with that guild and <90% of all
 df3<-df2 %>% group_by(park) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
-  filter(between(nonzero,0.1,0.99)) %>% 
+  filter(between(nonzero,0.1,0.9)) %>% 
   droplevels() %>% ungroup(park) 
 
 # FRHI Herbaceous, MIMA Shrub and SAHI Shrub are 100% present the whole time.

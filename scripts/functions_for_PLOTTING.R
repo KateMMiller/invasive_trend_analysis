@@ -221,12 +221,12 @@ plotFreqParkGuild<-function(df){
   print(ggplot(df, aes(x=cycle2, y=pfreq, group=guild))+ 
       facet_wrap(~park,ncol=8,scales='free')+
       geom_line(aes(y=pfreq, x=cycle2,colour=factor(guild), linetype=sign), na.rm=TRUE)+
+      scale_shape_manual(values=c(21,19))+
       geom_point(aes(y=pfreq, x=cycle2,colour=factor(guild), shape=sign), 
         size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
-      scale_shape_manual(values=c(21,19))+
       #      scale_fill_manual(values=c('white'))+
       scale_linetype_manual(values=c('dashed','solid'))+
-      scale_color_manual(values=c('Gold', 'ForestGreen','IndianRed','RoyalBlue'))+
+      scale_color_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
       theme_bw()+
       theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
         plot.margin=unit(c(0.4,0.4,0.5,0.3),'lines'),

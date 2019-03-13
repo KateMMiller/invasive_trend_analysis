@@ -5,9 +5,9 @@ output:
     keep_tex: no
     latex_engine: xelatex
 params:
-  park_code: "MABI"
+  park_code: "ROCR"
 mainfont: NPS Rawlinson OT
-sansfont: FrutigerLTStd-Roman
+sansfont: HFrutigerLTStd-Roman
 fontsize: 10.5pt
 header-includes:
 - \usepackage{geometry, caption, float, ragged2e, color, fancyhdr}
@@ -68,6 +68,20 @@ invresults<-function(df, metric, units){
   )
 }  
 
+invresults_PF<-function(df){
+  df<-df %>% filter(coef=='Slope',park==params$park_code) %>% 
+    select(estimate,sign) %>% 
+    mutate(odds=exp(estimate),
+           results=ifelse(sign==1 & odds>0,
+                          paste0('The odds of a plot being invaded in the next cycle were ', round(odds,2), 
+                          ' times more likely than not being invaded.'),
+                   ifelse(sign==1 & odds<0,
+                          paste0('The odds of a plot being invaded in the next cycle were ', round((1/odds),2), 
+                          ' times less likely than a plot remaining un-invaded.'), 
+                          paste0('There was no significant change in the odds of a plot being invaded in subsequent cycles.'))))
+  return(df)
+}
+
 # Average cover total
 ACTC3mean<-avgcov_total %>% filter(cycle==3, park==params$park_code) %>% select(mean)
 
@@ -100,7 +114,7 @@ QRTC3rank<-qrich_total %>% filter(cycle==3) %>% arrange(mean) %>%
 # Plot frequency
 PFTC3freq<-pfreq_total %>% filter(cycle==3, park==params$park_code) %>% select(pfreq)
 
-PFTcoef<-invresults(df=pfreq_total,metric='Plot % frequency', units='% of plots per cycle')
+PFTcoef<-invresults_PF(df=pfreq_total)
 
 PFTC3rank<-pfreq_total %>% filter(cycle==3) %>% arrange(pfreq) %>% 
   mutate(rank=dense_rank(desc(pfreq))) %>% filter(park==params$park_code) %>% 
@@ -141,8 +155,7 @@ guild_results<-function(df, guildtype, metric){
             df<-df %>% filter(coef=='Slope',park==params$park_code, guild==guildtype) %>%
               droplevels()
             metric_units<-case_when(metric=='Average % cover'~ '%',
-                                metric=='Quadrat % frequency'~ '%',
-                                metric=='Quadrat richness'~ ' species/quadrat')
+                                metric=='Quadrat % frequency'~ '%')
             results<-data.frame(result=NA, result_order=NA, metric_order=NA, label=NA)
             results<-results %>% mutate(result=
                  if (any(levels(df$guild)==guildtype)==FALSE){paste0('Remove')
@@ -164,16 +177,48 @@ guild_results<-function(df, guildtype, metric){
                }, 
 
                metric_order= case_when(metric=='Average % cover'~ 1,
-                                metric=='Quadrat % frequency'~ 2,
-                                metric=='Quadrat richness'~ 3),
+                                       metric=='Quadrat % frequency'~ 2),
                label= paste0(metric,' of ',tolower(guildtype),'s'),
                guild= paste0(guildtype)
                )
               # print(results, quote=F)
 }
 
+guild_results_PF<-function(df, guildtype){
+            df<-df %>% filter(coef=='Slope',park==params$park_code, guild==guildtype) %>%
+              mutate(odds=exp(estimate)) %>% droplevels()
+            metric_units<-c('times')
+            
+            results<-data.frame(result=NA, result_order=NA, metric_order=NA, label=NA)
+            results<-results %>% mutate(
+                result=
+                 if (any(levels(df$guild)==guildtype)==FALSE){paste0('Remove')
+               } else if (any(levels(df$guild)==guildtype)==TRUE & df$sign==1 & df$odds>0) {
+                 paste0('The odds of a plot being invaded by ', tolower(guildtype), ' were ', 
+                   round(df$odds,2), metric_units, ' more likely in the next cycle.')
+               } else if (any(levels(df$guild)==guildtype)==TRUE & df$sign==1 & df$odds<0) {
+                 paste0('The odds of a plot being invaded by ', tolower(guildtype), ' were ', 
+                   round((1/df$odds),2), metric_units, ' less likely in the next cycle.')
+               } else if (any(levels(df$guild)==guildtype)==TRUE & df$sign==0) {
+                 paste0('Plot % frequency of invasive ', tolower(guildtype), "s")
+               }, 
+               
+               result_order=
+                 if (any(levels(df$guild)==guildtype)==FALSE) {4
+               } else if (any(levels(df$guild)==guildtype)==TRUE & df$sign==1 & df$estimate>0) {1
+               } else if (any(levels(df$guild)==guildtype)==TRUE & df$sign==1 & df$estimate<=0) {2
+               } else if (any(levels(df$guild)==guildtype)==TRUE & df$sign==0) {3
+               }, 
 
-results_table<-rbind(
+               metric_order= 3,
+               label= paste0('Plot % frequency of invasive ',tolower(guildtype),'s'),
+               guild= paste0(guildtype)
+               )
+              # print(results, quote=F)
+}
+
+
+results_table1<-rbind(
   guild_results(df=avgcov_guild_coefs, guildtype='Tree',metric='Average % cover'),
   guild_results(df=avgcov_guild_coefs, guildtype='Shrub',metric='Average % cover'),
   guild_results(df=avgcov_guild_coefs, guildtype='Graminoid',metric='Average % cover'),
@@ -181,12 +226,15 @@ results_table<-rbind(
   guild_results(df=qfreq_guild_coefs, guildtype='Tree',metric='Quadrat % frequency'),
   guild_results(df=qfreq_guild_coefs, guildtype='Shrub',metric='Quadrat % frequency'),
   guild_results(df=qfreq_guild_coefs, guildtype='Graminoid',metric='Quadrat % frequency'),
-  guild_results(df=qfreq_guild_coefs, guildtype='Forb',metric='Quadrat % frequency'),
-  guild_results(df=qrich_guild_coefs, guildtype='Tree',metric='Quadrat richness'),
-  guild_results(df=qrich_guild_coefs, guildtype='Shrub',metric='Quadrat richness'),
-  guild_results(df=qrich_guild_coefs, guildtype='Graminoid',metric='Quadrat richness'),
-  guild_results(df=qrich_guild_coefs, guildtype='Forb',metric='Quadrat richness')    
+  guild_results(df=qfreq_guild_coefs, guildtype='Forb',metric='Quadrat % frequency')
   )
+
+results_table_PF<-data.frame(result=NA, result_order=NA, metric_order=NA, label=NA)
+results_table_PF<-rbind(guild_results_PF(df=pfreq_guild_coefs,guildtype='Tree'),
+                        guild_results_PF(df=pfreq_guild_coefs,guildtype='Shrub'),
+                        guild_results_PF(df=pfreq_guild_coefs,guildtype='Graminoid'),
+                        guild_results_PF(df=pfreq_guild_coefs,guildtype='Forb'))
+results_table<-rbind(results_table1,results_table_PF)
 
 results_table_sign<-results_table %>% arrange(result_order,metric_order) %>% 
   filter(result_order<3) %>% select(result) %>% droplevels()
@@ -212,14 +260,14 @@ The Eastern Forest Working Group of the National Park Service Inventory and Moni
 \vspace{-2pt}\Large\textsf {Methods}
 \break
 \normalsize
-We used linear mixed effects models to assess trends in the following metrics: Average % cover, Quadrat % frequency, and Quadrat richness. Average % cover is the average cover of invasive species within 1 m\textsuperscript{2} quadrats per plot. Quadrat % frequency is the percent of 1 m\textsuperscript{2} quadrats per plot with an invasive species. Quadrat richness is the average number of invasive species detected per quadrat. We assessed trends for total invasives and for the following guilds: Trees, Shrubs/Vines, Graminoids (i.e., grasses, sedges and rushes), and Forbs. We only included exotic species considered invasive, and we only modeled guilds that were present in >10% of the plots in a given park. Note that quadrat % cover is not collected for tree species by NCRN. In addition quadrat % cover and frequency data are only collected for indicator invasive species in NCRN and MIDN. While the indicator list includes the most common invasive species in network parks, invasive abundance and richness may be higher than the results presented in this analysis. We modeled each park individually and used random intercepts to account for repeated measures. Trends cover up to three cycles, and for most parks, cycle 1= 2007-2010, cycle 2= 2011-2014, and cycle 3= 2014-2018. To determine whether trends were significant, we used parametric bootstrapping to generate empirical 95% confidence intervals around model coefficients (e.g. slope).\break 
+We used linear mixed models to assess trends in Average % cover, Quadrat % frequency, Quadrat richness and logistic mixed models for Plot % frequency. Average % cover is averaged across 1 m\textsuperscript{2} quadrats per plot. Quadrat % frequency is the percent of 1 m\textsuperscript{2} quadrats per plot with an invasive species. Quadrat richness is the average number of invasive species per quadrat. Plot % frequency is the % of plots invaded by one or more invasive species and we used logistic regression to model the odds of a plot being invaded in subsequent cycles. We assessed trends for total invasives and the following guilds: Trees, Shrubs/Vines, Graminoids (i.e., grasses, sedges and rushes), and Forbs. We only included exotic species considered invasive, and only modeled guilds that were present in >10% of the plots in a park. Note that NCRN does not collect quadrat % cover of tree species, and quadrat % cover and frequency data are only collected for indicator species in NCRN and MIDN. While the indicator list includes the most common invasive species in network parks, invasive abundance and richness may be higher than our results suggest. We modeled each park individually and used random intercepts to account for repeated measures. Trends cover up to three cycles, and for most parks, cycle 1= 2007-2010, cycle 2= 2011-2014, and cycle 3= 2014-2018. To determine whether trends were significant, we used parametric bootstrapping to generate empirical 95% confidence intervals around model coefficients (e.g. slope).\break 
 \vspace{-8.9pt}
 \flushleft\Large\textsf{Results: Overall}\newline\vspace{-12.4pt}
 \normalsize\justify
 Averaging over 50% cover in cycle 3, MONO had the highest invasive % cover of parks in the study (Fig 2). ANTI, CHOH, FRHI, HOFU, and MORR averaged over 30% cover in cycle 3. Average \% cover increased significantly in `r sign_inc_AT` out of `r numparks` parks (Fig. 2). Quadrat \% frequency was highest in ANTI, GETT, MONO and SAHI with a roughly 90\% of quadrats containing an invasive species in cycle 3. Invasive quadrat \% frequency increased significantly in `r sign_inc_QF` out of `r numparks` parks, and decreased significantly in PRWI. Invasive quadrat richness in cycle 3 was greatest in CHOH, GETT, MONO, MORR, and FRHI, averaging over 2 invasive species per quadrat. Invasive quadrat richness increased significantly in `r sign_inc_QR` out of `r numparks` parks and decreased significantly in PRWI. Plot \% frequency of invasives increased significantly in `r sign_inc_PF` out of `r numparks`. Invasive shrubs/vines were most abundant and often increased over time in northern parks, and both graminoids and shrubs/vines followed similar patterns in southern parks.
 \break
 \vspace{-10pt}
-```{r 'totalByMetric', fig.height=5.5, fig.width=2.5, echo=F, warnings=F, results='hide', message=F,cache=F, fig.align='center', fig.caption='Trends in average cover, quadrat frequency and quadrat richness'}
+```{r 'totalByMetric', fig.height=5.3, fig.width=2.5, echo=F, warnings=F, results='hide', message=F,cache=F, fig.align='center', fig.caption='Trends in average cover, quadrat frequency and quadrat richness'}
 plot_avgcov_t2<-suppressWarnings(plot_avgcov_t_all + 
   geom_line(data=(avgcov_total %>% filter(park==params$park_code)), 
             aes(x=cycle,y=mean, linetype=sign),col='#ff6666', lwd=1, na.rm=TRUE)+
@@ -263,18 +311,16 @@ plots_t_all
 \vspace{-7.5pt}
 \flushleft\Large\textsf {Results: Park-Level}
 \break\vspace{-17pt}\justify\normalsize 
-Trends in total invasives varied across metrics in `r site$park_code`. In cycle 3, average \% invasive cover was `r ifelse(round(ACTC3mean$mean,2)<0.01, paste('<0.01'),round(ACTC3mean$mean,2))`\%, which was the `r ending(ACTC3rank)` `r high_low(ACTC3rank)` out of `r numparks` parks in this study. `r paste(ACTcoef$results)` Quadrat \% frequency in cycle 3 was `r ifelse(round(QFTC3mean$mean,2)<0.01, paste('<0.01'), round(QFTC3mean$mean,2))`\%, which was `r ending(QFTC3rank)` `r high_low(QFTC3rank)` out of `r numparks` parks in this study. `r paste(QFTcoef$results)` Quadrat richness averaged `r ifelse(round(QRTC3mean$mean,2)<0.01, paste('<0.01'), round(QRTC3mean$mean,2))` invasive species/quadrat in cycle 3, which was `r ending(QRTC3rank)` `r high_low(QRTC3rank)` out of `r numparks` parks. `r paste(QRTcoef$results)`
+Trends in total invasives varied across metrics in `r site$park_code`. In cycle 3, average \% invasive cover was `r ifelse(round(ACTC3mean$mean,2)<0.01, paste('<0.01'),round(ACTC3mean$mean,2))`\%, which was the `r ending(ACTC3rank)` `r high_low(ACTC3rank)` out of `r numparks` parks in this study. `r paste(ACTcoef$results)` Quadrat \% frequency in cycle 3 was `r ifelse(round(QFTC3mean$mean,2)<0.01, paste('<0.01'), round(QFTC3mean$mean,2))`\%, which was `r ending(QFTC3rank)` `r high_low(QFTC3rank)` out of `r numparks` parks in this study. `r paste(QFTcoef$results)` Quadrat richness averaged `r ifelse(round(QRTC3mean$mean,2)<0.01, paste('<0.01'), round(QRTC3mean$mean,2))` invasive species/quadrat in cycle 3, which was `r ending(QRTC3rank)` `r high_low(QRTC3rank)` out of `r numparks` parks. `r paste(QRTcoef$results)` `r paste(PFTcoef$results)`
 \vspace{10pt}\break
-Invasive guild trends varied by metric in `r site$park_code` (Figs 3-5). Invasive `r noquote(tolower(topguild(avgcov_guild)$guilds))` had the highest guild \% cover in `r site$park_code` in cycle 3, averaging `r ifelse(round(topguild(avgcov_guild)$mean,2)<0.01, paste('<0.01'), round(topguild(avgcov_guild)$mean,2))` \% and ranking `r df<-topguild(avgcov_guild); paste(ending(df), high_low(df), sep=' ')` out of `r numparks` parks for this metric. Averaging `r ifelse(round(topguild(qfreq_guild)$mean,2)<0.01, paste('<0.01'), round(topguild(qfreq_guild)$mean,2))`\%, `r noquote(tolower(topguild(qfreq_guild)$guilds))` had the highest quadrat \% frequency in `r site$park_code`, and ranked `r df<-topguild(qfreq_guild); paste(ending(df), high_low(df),sep=" ")` out of `r numparks` parks for `r noquote(tolower(topguild(qfreq_guild)$guilds))` quadrat % frequency. `r noquote(topguild(qrich_guild)$guilds)` had the highest quadrat richness in `r site$park_code`, averaging `r ifelse(round(topguild(qrich_guild)$mean,2)<0.01, paste('<0.01'), round(topguild(qrich_guild)$mean,2))` invasive species/quadrat, and ranking `r df<-topguild(qrich_guild); paste(ending(df), high_low(df),sep=" ")` out of `r numparks` parks for this metric. `r paste(unlist(results_table_sign),collapse=' ')` `r noquote(topguild_PF(pfreq_guild)$guilds)` had the highest plot \% frequency in `r site$park_code`, with `r ifelse(round(topguild_PF(pfreq_guild)$pfreq,2)<0.01, paste('<0.01%'), round(topguild_PF(pfreq_guild)$pfreq,2))`\% of plots invaded by `r tolower(noquote(topguild_PF(pfreq_guild)$guilds))` in cycle 3, and ranking `r df<-topguild_PF(pfreq_guild);paste(ending(df), high_low(df), sep=" ")` out of `r numparks` parks.
+Invasive guild trends varied by metric in `r site$park_code` (Figs 3-5). Invasive `r noquote(tolower(topguild(avgcov_guild)$guilds))` had the highest guild \% cover in `r site$park_code` in cycle 3, averaging `r ifelse(round(topguild(avgcov_guild)$mean,2)<0.01, paste('<0.01'), round(topguild(avgcov_guild)$mean,2))` \% and ranking `r df<-topguild(avgcov_guild); paste(ending(df), high_low(df), sep=' ')` out of `r numparks` parks for this metric. Averaging `r ifelse(round(topguild(qfreq_guild)$mean,2)<0.01, paste('<0.01'), round(topguild(qfreq_guild)$mean,2))`\%, `r noquote(tolower(topguild(qfreq_guild)$guilds))` had the highest quadrat \% frequency in `r site$park_code`, and ranked `r df<-topguild(qfreq_guild); paste(ending(df), high_low(df),sep=" ")` out of `r numparks` parks for `r noquote(tolower(topguild(qfreq_guild)$guilds))` quadrat % frequency. `r paste(unlist(results_table_sign),collapse=' ')` `r noquote(topguild_PF(pfreq_guild)$guilds)` had the highest plot \% frequency in `r site$park_code`, with `r ifelse(round(topguild_PF(pfreq_guild)$pfreq,2)<0.01, paste('<0.01%'), round(topguild_PF(pfreq_guild)$pfreq,2))`\% of plots invaded by `r tolower(noquote(topguild_PF(pfreq_guild)$guilds))` in cycle 3, and ranking `r df<-topguild_PF(pfreq_guild);paste(ending(df), high_low(df), sep=" ")` out of `r numparks` parks.
 \vspace{10pt}\break
-[Placeholder for park-specific info on invasive species comp.]\break
-[Placeholder for park-specific info on invasive species comp.]\break
 [Placeholder for park-specific info on invasive species comp.]\break
 [Placeholder for park-specific info on invasive species comp.]\break
 [Placeholder for park-specific info on invasive species comp.]\break
 [Placeholder for park-specific info on invasive species comp.]\break
 
-```{r 'avgcovByGuild', fig.height=3.4, fig.width=4, echo=F, warnings=F, results='hide', message=F, cache=F, fig.align='center'}
+```{r 'avgcovByGuild', fig.height=3.3, fig.width=4, echo=F, warnings=F, results='hide', message=F, cache=F, fig.align='center'}
 gram_avgcov_g2<-suppressWarnings(gram_avgcov_g+
   geom_line(data=(avgcov_guild %>% filter(park==params$park_code,guild=='Graminoid')),
             aes(x=cycle,y=mean,linetype=sign),col='#ff6666',lwd=1, na.rm=T)+
@@ -319,8 +365,8 @@ plots_g_avgcov2
 ```
 \vspace{-2pt}
 \small\textsf{Figure 3. Modeled invasive plant cover trends by guild. Each line represents a park. Solid lines are significant trends. {`r site$park_code`} is highlighted in red. Guilds found in <10\% of a park's plots and NCRN Trees (\% cover only) were not modeled or displayed.}
-\vspace{2pt}\pagebreak
-\vspace{2pt}
+\break
+\vspace{-24pt}
 ```{r 'qFreqByGuild', fig.height=3.4, fig.width=4, echo=F, warnings=F, results='hide', message=F, cache=F, fig.align='center'}
 gram_qfreq_g2<-suppressWarnings(gram_qfreq_g+
   geom_line(data=(qfreq_guild %>% filter(park==params$park_code,guild=='Graminoid')),
@@ -364,9 +410,10 @@ plots_g_qfreq2<-plot_grid(title, plots_g_qfreq, rel_heights = c(0.1,1.1), nrow=2
 
 plots_g_qfreq2
 ```
+\vspace{-4pt}
 \flushleft\small\textsf{Figure 4. Trends in modeled invasive quadrat frequency by guild. See Figure 3 caption for more information.}
 \break
-\vspace*{-10pt}
+\vspace*{-16pt}
 ```{r 'pFreqByGuild', fig.height=3.4, fig.width=4, echo=F, warnings=F, results='hide', message=F, cache=F, fig.align='center'}
 gram_pfreq_g2<-suppressWarnings(gram_pfreq_g+
   geom_line(data=(pfreq_guild %>% filter(park==params$park_code,guild=='Graminoid')),
@@ -410,10 +457,11 @@ plots_g_pfreq2<-plot_grid(title, plots_g_pfreq, rel_heights = c(0.1,1.1), nrow=2
 
 plots_g_pfreq2
 ```
+\vspace{-6pt}
 \flushleft\small\textsf{Figure 5. Trends in actual plot \% frequency by guild. Significance was determined with logistic regression. See Figure 3 caption for more information.}
 \break
 \flushleft\Large\textsf {More Information}
-\vspace*{2pt}
+\vspace{2pt}
 \break\normalsize
 More information about this study can be found on the `r site$network_code` website (\textit{`r contact$website`}), or by contacting:
 \vspace{4pt}
