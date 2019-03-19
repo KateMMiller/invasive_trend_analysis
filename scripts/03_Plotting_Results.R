@@ -9,7 +9,7 @@ ppi<-300
 #-----------------------------------------------
 # Average % Cover - Total
 #-----------------------------------------------
-avgcov_total<-read.csv("./results/results_avecov-total-response.csv")[,-1]
+avgcov_total<-read.csv("./results/results_avecov-total-response_NP.csv")[,-1]
 
 avgcov_total<- avgcov_total %>% arrange(lat.rank) %>% 
   mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
@@ -17,15 +17,17 @@ avgcov_total<- avgcov_total %>% arrange(lat.rank) %>%
 avgcov_total$park<-reorder(avgcov_total$park,-avgcov_total$lat.rank)
 
 plot_avgcov_t<-plotCoverParkTotal(avgcov_total)
+plot_avgcov_t
 
-tiff(file='./results/figures/avgcov_total_sameY.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
+tiff(file='./results/figures/avgcov_total_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
 plot_avgcov_t
 dev.off()
 
 #-----------------------------------------------
 # Quadrat % Frequency - Total
 #-----------------------------------------------
-qfreq_total<-read.csv("./results/results_qfreq-total-response.csv")
+qfreq_total<-read.csv("./results/results_qfreq-total-response_NP.csv")
+#+++++++++++++++++++Still waiting on this one to finish running
 
 qfreq_total<- qfreq_total %>% arrange(lat.rank) %>% 
   mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
@@ -34,14 +36,14 @@ qfreq_total$park<-reorder(qfreq_total$park,-qfreq_total$lat.rank)
 
 plot_qfreq_t<-plotQFreqParkTotal(qfreq_total)
 
-tiff(file='./results/figures/qfreq_total_sameY.tiff',units='px',width=12.2*ppi,height=9*ppi,res=300)
+tiff(file='./results/figures/qfreq_total_NP.tiff',units='px',width=12.2*ppi,height=9*ppi,res=300)
 plot_qfreq_t
 dev.off()
 
 #-----------------------------------------------
 # Quadrat Richness - Total
 #-----------------------------------------------
-qrich_total<-read.csv("./results/results_qrich-total-response.csv")
+qrich_total<-read.csv("./results/results_qrich-total-response_NP.csv")
 
 qrich_total<- qrich_total %>% arrange(lat.rank) %>% 
   mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
@@ -50,7 +52,7 @@ qrich_total$park<-reorder(qrich_total$park,-qrich_total$lat.rank)
 
 plot_qrich_t<-plotQRichParkTotal(qrich_total)
 
-tiff(file='./results/figures/qrich_total_sameY.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
+tiff(file='./results/figures/qrich_total_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
 plot_qrich_t
 dev.off()
 
@@ -81,7 +83,7 @@ dev.off()
 #-----------------------------------------------
 # Average % Cover - by Guild
 #-----------------------------------------------
-avgcov_guild<-read.csv("./results/results_avecov-by_guild-response.csv")
+avgcov_guild<-read.csv("./results/results_avecov-by_guild-response_NP.csv")
 
 avgcov_guild<- avgcov_guild %>% arrange(lat.rank) %>% 
   mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
@@ -89,15 +91,16 @@ avgcov_guild<- avgcov_guild %>% arrange(lat.rank) %>%
 avgcov_guild$park<-reorder(avgcov_guild$park,-avgcov_guild$lat.rank)
 
 plot_avgcov_g<-plotCoverParkGuild(avgcov_guild)
+plot_avgcov_g
 
-tiff(file='./results/figures/avgcov_guild_sameY.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
+tiff(file='./results/figures/avgcov_guild_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
 plot_avgcov_g
 dev.off()
 
 #-----------------------------------------------
 # Quadrat % Frequency - by Guild
 #-----------------------------------------------
-qfreq_guild<-read.csv("./results/results_qfreq-by_guild-response.csv")
+qfreq_guild<-read.csv("./results/results_qfreq-by_guild-response_NP.csv")
 
 qfreq_guild<- qfreq_guild %>% arrange(lat.rank) %>% 
   mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
@@ -106,14 +109,14 @@ qfreq_guild$park<-reorder(qfreq_guild$park,-qfreq_guild$lat.rank)
 
 plot_qfreq_g<-plotQFreqParkGuild(qfreq_guild)
 
-tiff(file='./results/figures/qfreq_guild_sameY.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
+tiff(file='./results/figures/qfreq_guild_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
 plot_qfreq_g
 dev.off()
 
 #-----------------------------------------------
 # Quadrat Richness - by Guild
 #-----------------------------------------------
-qrich_guild<-read.csv("./results/results_qrich-by_guild-response.csv")
+qrich_guild<-read.csv("./results/results_qrich-by_guild-response_NP.csv")
 
 qrich_guild<- qrich_guild %>% arrange(lat.rank) %>% 
   mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
@@ -123,7 +126,7 @@ qrich_guild$park<-reorder(qrich_guild$park,-qrich_guild$lat.rank)
 
 plot_qrich_g<-plotQRichParkGuild(qrich_guild)
 
-tiff(file='./results/figures/qrich_guild_sameY.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
+tiff(file='./results/figures/qrich_guild_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
 plot_qrich_g
 dev.off()
 

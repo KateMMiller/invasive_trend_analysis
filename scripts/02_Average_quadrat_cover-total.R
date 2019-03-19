@@ -3,15 +3,13 @@
 #-----------------------------------
 ## ---- codesetup_AC_T ---- 
 #-----------------------------------
-library(knitr)
 library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for glmer with Poisson
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
-library(lmerTest) # for p-values based on Satterthwaite-approximated df  
 library(prediction) # for find_data(model) function
 library(cowplot) #for plot_grid
+library(lmeresampler)
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -25,7 +23,7 @@ glmerCtlList <- glmerControl(optimizer=c("bobyqa","Nelder_Mead"),
 #-----------------------------
 # Read in data.frame without guids in first two columns
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_total_invasives.csv")#[,-c(1,2)]
-df<-df %>% arrange(park,plot_name,cycle)
+df<-df %>% filter(park!='SAHI' & park !='WOTR') %>% droplevels() %>% arrange(park,plot_name,cycle)
 
 df_park<-df %>% group_by(park) %>% nest()
 
@@ -35,7 +33,7 @@ df_park<-df %>% group_by(park) %>% nest()
 analysis.title<-"Average % Invasive Cover Total"
 
 # Model without transformation
-avgcov.mod<-function(df) {lmer(avg.cover ~ cycle+ (1|plot_name),data=df)}
+avgcov.mod<-function(df) {lmer(avg.cover ~ cycle + (1|plot_name),data=df)}
 # random slope had singular fit, so went with simpler rand. intercept
 
 prelim_by_park_AC_T<-df_park %>% mutate(model=map(data,avgcov.mod),
@@ -63,14 +61,11 @@ by_park_AC_T<-df_park %>% mutate(model=map(data,avgcov.mod),
 # summarize model output
 results_AC_T<-by_park_AC_T %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
   unnest(summ) %>%  filter(effect=='fixed') %>% 
-  select(park,term,estimate,std.error) %>% arrange(park,term)
+  select(park,term,estimate) %>% arrange(park,term)
 
 # reorder term factor, so can more easily associate the guilds with the terms, especially the reference term.
-head(results_AC_T)
-table(results_AC_T$term)
-
 results_AC_T<-results_AC_T %>% arrange(park,term) %>% 
-  mutate(estimate=round(estimate,3),std.error=round(std.error,3))
+  mutate(estimate=round(estimate,3))
 
 park_names2_AC_T<-rep(levels(df$park),each=2) # make vector of park names
 park_names2_AC_T
@@ -82,8 +77,8 @@ results_AC_T<-results_AC_T %>% mutate(coef=ifelse(grepl('cycle',term),'Slope','I
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_AC_T<-by_park_AC_T %>% 
-  mutate(conf.coef=map(model,~bootMer(.x,FUN=fixef,nsim=1000, parallel='multicore',
-    ncpus=3))) %>% select(conf.coef)  
+  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))) %>% 
+  select(conf.coef)  
 
 coefs_AC_T<-by_park_coefs_AC_T %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
@@ -107,7 +102,7 @@ results_final_AC_T<-results2_AC_T %>%
   select(park,coef,estimate,lower,upper,sign) 
 
 View(results_final_AC_T)
-write.csv(results_final_AC_T,'./results/results_avecov-total-coefs.csv', row.names=F)
+write.csv(results_final_AC_T,'./results/results_avecov-total-coefs_NP.csv', row.names=F)
 
 ##  ----  model_response_AC_T ---- 
 #-----------------------------------
@@ -117,7 +112,7 @@ write.csv(results_final_AC_T,'./results/results_avecov-total-coefs.csv', row.nam
 # for each cycle by guild level 
 by_park_resp_AC_T<-by_park_AC_T %>% 
   mutate(conf.est=map(model,
-    ~bootMer(.x,confFun,nsim=1000,parallel='multicore',ncpus=3)))
+    ~case_bootstrap(.x,fn=confFun,B=1000,resample=c(TRUE,FALSE))))
 
 by_park_resp_AC_T<-by_park_resp_AC_T %>% mutate(cols=map(model,~getColNames(.x)), 
   boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
@@ -158,7 +153,7 @@ respCIs_final_AC_T<-respCIs_final_AC_T %>%
   mutate(sign=as.factor(sign), park=reorder(park,-lat.rank)) %>% 
   arrange(lat.rank,cycle)
 
-View(respCIs_final_AC_T)
+#View(respCIs_final_AC_T)
 
-write.csv(respCIs_final_AC_T,"./results/results_avecov-total-response.csv")
+write.csv(respCIs_final_AC_T,"./results/results_avecov-total-response_NP.csv")
 

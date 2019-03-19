@@ -45,6 +45,11 @@ histPlot<-function(df,resid,park){
         axis.line = element_line(colour = "black"))+labs(title=paste('Residual Plot',analysis.title,sep=":")))
 }
 
+# Store fixed effects and print park that simulation is on
+fixed_fun<-function(model){
+  cat(paste0(substr(model@frame$plot_name[[1]],1,4)," "))
+  fixed<-fixef(model)
+}
 
 # Modeling functions for bootstraps
 confFun<-function(model){
@@ -61,7 +66,6 @@ confFun<-function(model){
     newdf=orig.df %>% select(cycle) %>% arrange(cycle) %>% unique()
     predict(model,newdata=newdf, type='response', re.form=NA)} 
 }# re.form=NA means that the random effects remain fixed.
-
 
 getColNames<-function(model){
   if (getME(model,'p')>2){

@@ -7,8 +7,9 @@ library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for glmer with Poisson
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
+#library(sjstats) # for overdisp
 library(prediction) # for find_data(model) function
+library(lmeresampler)
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -29,11 +30,7 @@ df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) 
   filter((park!='ACAD'& nonzero>0.1)|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild)
 
-df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree')) %>% droplevels()
-
-table(df2$network,df2$guild) # Trees removed from NCRN
-
-table(df2$park,df2$guild)# only ACAD was left without a guild
+df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & !(park=='SAHI') & (park!='WOTR')) %>% droplevels()
 
 df_park<-df2 %>% group_by(park) %>% nest()
 
@@ -76,7 +73,7 @@ by_park_AC_G<-df_park %>% mutate(model=map(data,avgcov.mod),
 # summarize model output
 results_AC_G<-by_park_AC_G %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
   unnest(summ) %>%  filter(effect=='fixed') %>% 
-  select(park,term,estimate,std.error) %>% arrange(park,term)
+  select(park,term,estimate) %>% arrange(park,term)
 
 # reorder term factor, so can more easily associate the guilds with the terms, especially the reference term.
 table(results_AC_G$term)
@@ -85,7 +82,7 @@ results_AC_G$term<-ordered(results_AC_G$term,
     "guildShrub","cycle:guildShrub","guildTree","cycle:guildTree")) 
 
 results_AC_G<-results_AC_G %>% arrange(park,term) %>% 
-  mutate(estimate=round(estimate,3),std.error=round(std.error,3))
+  mutate(estimate=round(estimate,3))
 
 # create guild labels, so we know what the first level for each model is.
 guild_labels1_AC_G<-df2 %>% group_by(park,guild) %>% summarise(guild2=first(guild)) %>% 
@@ -106,8 +103,7 @@ results_AC_G<-results_AC_G %>% mutate(guild=guild_labels2_AC_G$guild2,
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_AC_G<-by_park_AC_G %>% 
-  mutate(conf.coef=map(model,~bootMer(.x,FUN=fixef,nsim=1000, parallel='multicore',
-    ncpus=3))) %>% 
+  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))) %>% 
   select(conf.coef)  
 
 coefs_AC_G<-by_park_coefs_AC_G %>% 
@@ -137,6 +133,7 @@ results3b_AC_G<-results3_AC_G %>% filter(rank==1) %>% droplevels() %>%
   mutate(est.corfac=estimate) %>% select(park,coef,est.corfac)
 
 results4_AC_G<- merge(results3_AC_G, results3b_AC_G, by=c('park','coef'), all.x=T,all.y=T)
+
 results5_AC_G<-results4_AC_G %>% 
   mutate(est.cor=ifelse(rank==1,est.corfac,est.corfac+estimate),
          lower.cor=ifelse(rank==1,lower,est.corfac+lower),
@@ -150,7 +147,7 @@ results_final_AC_G<-results5_AC_G %>%
   select(park,guild,coef,estimate,lower,upper,sign) 
   
 #View(results_final_AC_G)
-write.csv(results_final_AC_G,'./results/results_avecov-by_guild-coefs.csv', row.names=F)
+write.csv(results_final_AC_G,'./results/results_avecov-by_guild-coefs_NP.csv', row.names=F)
 
 ##  ----  model_response_AC_G ---- 
 #-----------------------------------
@@ -160,7 +157,7 @@ write.csv(results_final_AC_G,'./results/results_avecov-by_guild-coefs.csv', row.
 # for each cycle by guild level 
 by_park_resp_AC_G<-by_park_AC_G %>% 
   mutate(conf.est=map(model,
-    ~bootMer(.x,confFun,nsim=1000,parallel='multicore',ncpus=3)))
+    ~case_bootstrap(.x, fn=confFun, B=1000, resample=c(TRUE,FALSE))))
 
 by_park_resp_AC_G<-by_park_resp_AC_G %>% mutate(cols=map(model,~getColNames(.x)), 
   boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
@@ -202,4 +199,5 @@ respCIs_final_AC_G<-respCIs_final_AC_G %>%
     park=reorder(park,-lat.rank)) %>% 
   arrange(lat.rank,guild,cycle)
 
-write.csv(respCIs_final_AC_G,"./results/results_avecov-by_guild-response.csv")
+View(respCIs_final_AC_G)
+write.csv(respCIs_final_AC_G,"./results/results_avecov-by_guild-response_NP.csv")

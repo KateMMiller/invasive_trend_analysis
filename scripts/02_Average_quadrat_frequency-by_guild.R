@@ -8,8 +8,8 @@ library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for glmer with Poisson
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
 library(prediction) # for find_data(model) function
+library(lmeresampler)
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -26,9 +26,11 @@ df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,guild)
 
 # only include guilds with at least 10% of plots with that guild
-df2<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
+df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
   filter((park!='ACAD'& nonzero>0.1)|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild)
+
+df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & !(park=='SAHI') & (park!='WOTR')) %>% droplevels()
 
 df_park<-df2 %>% group_by(park) %>% nest()
 
@@ -49,8 +51,8 @@ prelim_by_park_QF_G<-df_park %>% mutate(model=map(data,qfreq.mod),
   resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 diag_QF_G<-unnest(prelim_by_park_QF_G, resids, pred)
-res_QF_G<-residPlot(diag_QF_G)
-hist_QF_G<-histPlot(diag_QF_G) 
+#res_QF_G<-residPlot(diag_QF_G)
+#hist_QF_G<-histPlot(diag_QF_G) 
 
 # Check conversion
 conv_QF_G<-unlist(prelim_by_park_QF_G[['model']]) %>% map('optinfo') %>% 
@@ -70,7 +72,7 @@ by_park_QF_G<-df_park %>% mutate(model=map(data,qfreq.mod),
 # summarize model output
 results_QF_G<-by_park_QF_G %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
   unnest(summ) %>%  filter(effect=='fixed') %>% 
-  select(park,term,estimate,std.error) %>% arrange(park,term)
+  select(park,term,estimate) %>% arrange(park,term)
 
 # reorder term factor, so can more easily associate the guilds with the terms, especially the reference term.
 table(results_QF_G$term)
@@ -79,7 +81,7 @@ results_QF_G$term<-ordered(results_QF_G$term,
     "guildShrub","cycle:guildShrub","guildTree","cycle:guildTree")) 
 
 results_QF_G<-results_QF_G %>% arrange(park,term) %>% 
-  mutate(estimate=round(estimate,3),std.error=round(std.error,3))
+  mutate(estimate=round(estimate,3))
 
 # create guild labels, so we know what the first level for each model is.
 guild_labels1_QF_G<-df2 %>% group_by(park,guild) %>% summarise(guild2=first(guild)) %>% 
@@ -100,9 +102,8 @@ results_QF_G<-results_QF_G %>% mutate(guild=guild_labels2_QF_G$guild2,
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_QF_G<-by_park_QF_G %>% 
-  mutate(conf.coef=map(model,~bootMer(.x,FUN=fixef,nsim=1000, parallel='multicore',
-    ncpus=3))) %>% 
-  select(conf.coef)  
+  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))) %>% 
+  select(conf.coef)   
 
 coefs_QF_G<-by_park_coefs_QF_G %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
@@ -130,6 +131,7 @@ results3b_QF_G<-results3_QF_G %>% filter(rank==1) %>% droplevels() %>%
   mutate(est.corfQF=estimate) %>% select(park,coef,est.corfQF)
 
 results4_QF_G<- merge(results3_QF_G, results3b_QF_G, by=c('park','coef'), all.x=T,all.y=T)
+
 results5_QF_G<-results4_QF_G %>% 
   mutate(est.cor=ifelse(rank==1,est.corfQF,est.corfQF+estimate),
          lower.cor=ifelse(rank==1,lower,est.corfQF+lower),
@@ -142,8 +144,9 @@ results_final_QF_G<-results5_QF_G %>%
          sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,guild,coef,estimate,lower,upper,sign) 
 
-write.csv(results_final_QF_G,'./results/results_qfreq-by_guild-coefs.csv', row.names=F)
+write.csv(results_final_QF_G,'./results/results_qfreq-by_guild-coefs_NP.csv', row.names=F)
 #View(results_final_QF_G)
+
 ##  ----  model_response_QF_G ---- 
 #-----------------------------------
 # Create bootstrapped CIs on response levels
@@ -152,7 +155,7 @@ write.csv(results_final_QF_G,'./results/results_qfreq-by_guild-coefs.csv', row.n
 # for each cycle by guild level 
 by_park_resp_QF_G<-by_park_QF_G %>% 
   mutate(conf.est=map(model,
-    ~bootMer(.x,confFun,nsim=1000,parallel='multicore',ncpus=3)))
+    ~case_bootstrap(.x, fn=confFun, B=1000, resample=c(TRUE,FALSE))))
 
 by_park_resp_QF_G<-by_park_resp_QF_G %>% mutate(cols=map(model,~getColNames(.x)), 
   boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
@@ -196,4 +199,4 @@ respCIs_final_QF_G<-respCIs_final_QF_G %>%
 
 #View(respCIs_final_QF_G)
 
-write.csv(respCIs_final_QF_G,"./results/results_qfreq-by_guild-response.csv")
+write.csv(respCIs_final_QF_G,"./results/results_qfreq-by_guild-response_NP.csv")

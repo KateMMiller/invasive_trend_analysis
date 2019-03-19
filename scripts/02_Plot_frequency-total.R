@@ -7,8 +7,8 @@ library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for glmer with Poisson
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
 library(prediction) # for find_data(model) function
+library(lmeresampler)
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -22,10 +22,10 @@ glmerCtlList <- glmerControl(optimizer=c("bobyqa","Nelder_Mead"),
 #-----------------------------
 # Read in data.frame without guids in first two columns
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_total_invasives.csv")#[,-c(1,2)]
-df<- df %>% arrange(park,plot_name,cycle)
+df<-df %>% filter(park!='SAHI' & park !='WOTR') %>% droplevels() %>% arrange(park,plot_name,cycle)
 df2<-df %>% filter(!is.na(plot.freq))
 
-# only include guilds with at least 10% of plots with that guild and <90% of all
+# only include parks with at least 10% of plots being present and <90% of all plots present
 df3<-df2 %>% group_by(park) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
   filter(between(nonzero,0.1,0.9)) %>% 
   droplevels() %>% ungroup(park) 
@@ -50,6 +50,7 @@ prelim_by_park_PF_T<-df_park %>% mutate(model=map(data,PFreq.mod),
   resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 # Check conversion
+diag_PF_T<-unnest(prelim_by_park_PF_T, resids, pred)
 conv_PF_T<-unlist(prelim_by_park_PF_T[['model']]) %>% map('optinfo') %>% 
   map('conv') %>% map('opt') %>% data.frame() %>% gather() 
 
@@ -67,13 +68,13 @@ by_park_PF_T<-df_park %>% mutate(model=map(data,PFreq.mod),
 # summarize model output
 results_PF_T<-by_park_PF_T %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
   unnest(summ) %>%  filter(effect=='fixed') %>% 
-  select(park,term,estimate,std.error) %>% arrange(park,term)
+  select(park,term,estimate) %>% arrange(park,term)
 
 # reorder term factor, so can more easily associate the guilds with the terms, especially the reference term.
 table(results_PF_T$term)
 
 results_PF_T<-results_PF_T %>% arrange(park,term) %>% 
-  mutate(estimate=round(estimate,3),std.error=round(std.error,3))
+  mutate(estimate=round(estimate,3))
 
 park_names2_PF_T<-rep(levels(df3$park),each=2) # make vector of park names
 park_names2_PF_T
