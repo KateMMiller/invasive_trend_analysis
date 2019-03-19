@@ -7,8 +7,8 @@ library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for glmer with Poisson
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
 library(prediction) # for find_data(model) function
+library(lmeresampler)
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -22,7 +22,7 @@ glmerCtlList <- glmerControl(optimizer=c("bobyqa","Nelder_Mead"),
 #-----------------------------
 # Read in data.frame without guids in first two columns
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_total_invasives.csv")#[,-c(1,2)]
-df<-df %>% arrange(park,plot_name,cycle)
+df<-df %>% filter(park!='SAHI' & park !='WOTR') %>% droplevels() %>% arrange(park,plot_name,cycle)
 
 df_park<-df %>% group_by(park) %>% nest()
 
@@ -39,8 +39,8 @@ prelim_by_park_QR_T<-df_park %>% mutate(model=map(data,qrich.mod),
   resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 diag_QR_T<-unnest(prelim_by_park_QR_T, resids, pred)
-res_QR_T<-residPlot(diag_QR_T)
-hist_QR_T<-histPlot(diag_QR_T)
+#res_QR_T<-residPlot(diag_QR_T)
+#hist_QR_T<-histPlot(diag_QR_T)
 
 # Check conversion
 conv_QR_T<-unlist(prelim_by_park_QR_T[['model']]) %>% map('optinfo') %>% 
@@ -60,14 +60,14 @@ by_park_QR_T<-df_park %>% mutate(model=map(data,qrich.mod),
 # summarize model output
 results_QR_T<-by_park_QR_T %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
   unnest(summ) %>%  filter(effect=='fixed') %>% 
-  select(park,term,estimate,std.error) %>% arrange(park,term)
+  select(park,term,estimate) %>% arrange(park,term)
 
 # reorder term factor, so can more easily associate the guilds with the terms, especially the reference term.
 head(results_QR_T)
 table(results_QR_T$term)
 
 results_QR_T<-results_QR_T %>% arrange(park,term) %>% 
-  mutate(estimate=round(estimate,3),std.error=round(std.error,3))
+  mutate(estimate=round(estimate,3))
 
 park_names2_QR_T<-rep(levels(df$park),each=2) # make vector of park names
 park_names2_QR_T
@@ -79,8 +79,8 @@ results_QR_T<-results_QR_T %>% mutate(coef=ifelse(grepl('cycle',term),'Slope','I
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_QR_T<-by_park_QR_T %>% 
-  mutate(conf.coef=map(model,~bootMer(.x,FUN=fixef,nsim=1000, parallel='multicore',
-    ncpus=3))) %>% select(conf.coef)  
+  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))) %>% 
+  select(conf.coef)  
 
 coefs_QR_T<-by_park_coefs_QR_T %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
@@ -103,7 +103,7 @@ results_final_QR_T<-results2_QR_T %>%
          sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,coef,estimate,lower,upper,sign) 
 
-write.csv(results_final_QR_T,'./results/results_qrich-total-coefs.csv', row.names=F)
+write.csv(results_final_QR_T,'./results/results_qrich-total-coefs_NP.csv', row.names=F)
 
 ##  ----  model_response_QR_T ---- 
 #-----------------------------------
@@ -113,7 +113,7 @@ write.csv(results_final_QR_T,'./results/results_qrich-total-coefs.csv', row.name
 # for each cycle by guild level 
 by_park_resp_QR_T<-by_park_QR_T %>% 
   mutate(conf.est=map(model,
-    ~bootMer(.x,confFun,nsim=1000,parallel='multicore',ncpus=3)))
+    ~case_bootstrap(.x,fn=confFun,B=1000,resample=c(TRUE,FALSE))))
 
 by_park_resp_QR_T<-by_park_resp_QR_T %>% mutate(cols=map(model,~getColNames(.x)), 
   boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
@@ -154,7 +154,8 @@ respCIs_final_QR_T<-respCIs_final_QR_T %>%
   mutate(sign=as.factor(sign), park=reorder(park,-lat.rank)) %>% 
   arrange(lat.rank,cycle)
 
+
 #View(respCIs_final_QR_T)
 
-write.csv(respCIs_final_QR_T,"./results/results_qrich-total-response.csv")
+write.csv(respCIs_final_QR_T,"./results/results_qrich-total-response_NP.csv")
 

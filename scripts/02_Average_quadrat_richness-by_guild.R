@@ -7,8 +7,8 @@ library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for glmer with Poisson
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
 library(prediction) # for find_data(model) function
+library(lmeresampler)
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -25,9 +25,11 @@ df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,guild)
 
 # only include guilds with at least 10% of plots with that guild
-df2<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
-  filter((park!='ACAD'&nonzero>0.1)|(park=='ACAD'& guild=='Shrub')) %>% 
+df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
+  filter((park!='ACAD'& nonzero>0.1)|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild)
+
+df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & !(park=='SAHI') & (park!='WOTR')) %>% droplevels()
 
 df_park<-df2 %>% group_by(park) %>% nest()
 
@@ -48,8 +50,8 @@ prelim_by_park_QR_G<-df_park %>% mutate(model=map(data,qrich.mod),
   resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 diag_QR_G<-unnest(prelim_by_park_QR_G, resids, pred)
-res_QR_G<-residPlot(diag_QR_G)
-hist_QR_G<-histPlot(diag_QR_G)  
+#res_QR_G<-residPlot(diag_QR_G)
+#hist_QR_G<-histPlot(diag_QR_G)  
 
 # Check conversion
 conv_QR_G<-unlist(prelim_by_park_QR_G[['model']]) %>% map('optinfo') %>% 
@@ -69,7 +71,7 @@ by_park_QR_G<-df_park %>% mutate(model=map(data,qrich.mod),
 # summarize model output
 results_QR_G<-by_park_QR_G %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
   unnest(summ) %>%  filter(effect=='fixed') %>% 
-  select(park,term,estimate,std.error) %>% arrange(park,term)
+  select(park,term,estimate) %>% arrange(park,term)
 
 # reorder term factor, so can more easily associate the guilds with the terms, especially the reference term.
 table(results_QR_G$term)
@@ -78,7 +80,7 @@ results_QR_G$term<-ordered(results_QR_G$term,
     "guildShrub","cycle:guildShrub","guildTree","cycle:guildTree")) 
 
 results_QR_G<-results_QR_G %>% arrange(park,term) %>% 
-  mutate(estimate=round(estimate,3),std.error=round(std.error,3))
+  mutate(estimate=round(estimate,3))
 
 # create guild labels, so we know what the first level for each model is.
 guild_labels1_QR_G<-df2 %>% group_by(park,guild) %>% summarise(guild2=first(guild)) %>% 
@@ -99,9 +101,8 @@ results_QR_G<-results_QR_G %>% mutate(guild=guild_labels2_QR_G$guild2,
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_QR_G<-by_park_QR_G %>% 
-  mutate(conf.coef=map(model,~bootMer(.x,FUN=fixef,nsim=1000, parallel='multicore',
-    ncpus=3))) %>% 
-  select(conf.coef)  
+  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))) %>% 
+  select(conf.coef)   
 
 coefs_QR_G<-by_park_coefs_QR_G %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
@@ -142,7 +143,7 @@ results_final_QR_G<-results5_QR_G %>%
          sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,guild,coef,estimate,lower,upper,sign) 
 
-write.csv(results_final_QR_G,'./results/results_qrich-by_guild-coefs.csv', row.names=F)
+write.csv(results_final_QR_G,'./results/results_qrich-by_guild-coefs_NP.csv', row.names=F)
 
 ##  ----  model_response_QR_G ---- 
 #-----------------------------------
@@ -152,7 +153,7 @@ write.csv(results_final_QR_G,'./results/results_qrich-by_guild-coefs.csv', row.n
 # for each cycle by guild level 
 by_park_resp_QR_G<-by_park_QR_G %>% 
   mutate(conf.est=map(model,
-    ~bootMer(.x,confFun,nsim=1000,parallel='multicore',ncpus=3)))
+    ~case_bootstrap(.x, fn=confFun, B=1000, resample=c(TRUE,FALSE))))
 
 by_park_resp_QR_G<-by_park_resp_QR_G %>% mutate(cols=map(model,~getColNames(.x)), 
   boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
@@ -198,4 +199,4 @@ respCIs_final_QR_G<-respCIs_final_QR_G %>%
 
 #View(respCIs_final_QR_G)
 
-write.csv(respCIs_final_QR_G,"./results/results_qrich-by_guild-response.csv")
+write.csv(respCIs_final_QR_G,"./results/results_qrich-by_guild-response_NP.csv")
