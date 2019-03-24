@@ -2,6 +2,7 @@
 # Code for invasive trend analysis
 #-----------------------------------
 library(forestNETN)
+options(scipen=100,digits=6)
 #----------------------------------
 # Function to remove ACAD.029.2010 
 #----------------------------------
@@ -21,7 +22,93 @@ park.plots1<-merge(park.plots2, quadsamp[,c("Event_ID","numHerbPlots")], by="Eve
 park.plots<-rmRejected(park.plots1)
 
 #---------------------------
-# First summarize data by guild
+# Summarise data by species for each park
+#---------------------------
+quads1<-joinQuadData(speciesType='invasive',park='all',from=2007,to=2018,QAQC=F)
+quads1$Latin_Name<-as.factor(quads1$Latin_Name)
+quads1<-rmRejected(quads1)
+quads1<- quads1 %>% mutate(cycle= case_when(Year<=2010~1, 
+                                                      between(Year,2011,2014)~2, 
+                                                      between(Year,2015,2018)~3),
+                           Latin_Name=ifelse(is.na(Latin_Name),'noinvspp',paste(Latin_Name)))
+
+quadscov<-quads1 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.cover) %>% 
+  spread(Latin_Name,avg.cover,fill=0)
+
+quadscov1<-quadscov %>% mutate(Euonymus=`Euonymus alatus`+ Euonymus + `Euonymus fortunei`, 
+                               Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
+                               `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
+                               Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
+                        select(-`Euonymus atropurpureus`, -`Euonymus alatus`, -`Euonymus fortunei`,
+                               -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
+                               -`Persicaria longiseta`, -`Persicaria posumbu`, -`Vincetoxicum nigrum`)
+
+
+quadsfreq<-quads1 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.freq) %>% 
+  spread(Latin_Name,avg.freq,fill=0)
+
+quadsfreq1<-quadsfreq %>% mutate(Euonymus=`Euonymus alatus`+ Euonymus + `Euonymus fortunei`, 
+                                 Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
+                                 `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
+                                 Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
+                          select(-`Euonymus atropurpureus`, -`Euonymus alatus`, -`Euonymus fortunei`,
+                                 -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
+                                 -`Persicaria longiseta`, -`Persicaria posumbu`, -`Vincetoxicum nigrum`)
+
+quadscov2<-quadscov1 %>% gather("Latin_Name","avgcov", -(Event_ID:cycle))
+quadsfreq2<-quadsfreq1 %>% gather("Latin_Name","avgfreq",-(Event_ID:cycle))
+nrow(quadsfreq2)
+quads2<-merge(quadscov2,quadsfreq2,by=c("Event_ID","Unit_Code","Plot_Name","cycle","Latin_Name"), all.x=T, all.y=T)
+names(quads2)
+table(complete.cases(quads2$avgcov))
+table(complete.cases(quads2$avgfreq))
+
+
+netnspp<-makeSppList('invasive',from=2007, to=2018)
+netnspp$Latin_Name[is.na(netnspp$Latin_Name)]<-'noinvspp'
+table(complete.cases(netnspp$Latin_Name))
+netnspp1<-rmRejected(netnspp)
+netnspp1<- netnspp1 %>% mutate(cycle= case_when(Year<=2010~1, 
+                                            between(Year,2011,2014)~2, 
+                                            between(Year,2015,2018)~3),
+                               present=1) %>% 
+                        select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name, present)
+
+netnspp2<-netnspp1 %>% spread(Latin_Name, present, fill=0)
+netnspp2<-netnspp2 %>% mutate(Euonymus=`Euonymus alatus`+ Euonymus + `Euonymus fortunei`, 
+                              Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
+                              `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
+                              Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
+                       select(-`Euonymus atropurpureus`, -`Euonymus alatus`, -`Euonymus fortunei`,
+                              -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
+                              -`Persicaria longiseta`, -`Persicaria posumbu`, -`Vincetoxicum nigrum`)
+netnspp3<-netnspp2 %>% gather('Latin_Name','plotfreq',-(Event_ID:cycle))
+
+sppcomb<-merge(netnspp3, quads2, by=c('Event_ID','Unit_Code','Plot_Name','cycle','Latin_Name'), all.x=T,all.y=T)
+#View(sppcomb)
+
+sppcomb$avgcov[is.na(sppcomb$avgcov)]<-0
+sppcomb$avgfreq[is.na(sppcomb$avgfreq)]<-0
+
+head(sppcomb)
+spp_comb_final<-sppcomb %>% mutate(plot.freq=plotfreq, avg.cover=avgcov,quad.freq=avgfreq) %>% 
+  select(-Event_ID,-plotfreq,-avgcov, -avgfreq) %>% arrange(Plot_Name,cycle)
+head(spp_comb_final)
+
+write.csv(spp_comb_final, './data/NETN/NETN_invasive_species_data.csv')
+
+sppcomb2<-sppcomb %>% filter(Latin_Name!='noinvspp') %>% group_by(Unit_Code,cycle,Latin_Name) %>% 
+                      summarise(avgcov=mean(avgcov), avgfreq=mean(avgfreq), 
+                                plotfreq=sum(plotfreq), numplots=n())
+head(sppcomb2)
+
+write.csv(sppcomb2,'./data/NETN/NETN_park-level_invasive_species_summary.csv', row.names=FALSE)
+
+topspp<-sppcomb2 %>% filter(cycle==3) %>% group_by(Latin_Name) %>% summarise(plotfreq=sum(plotfreq)) %>% arrange(-plotfreq)
+#View(topspp)
+
+#---------------------------
+# Summarize data by guild
 #---------------------------
 # Need to set guilds to only count a species once
 table(plants$Tree, plants$Shrub)
