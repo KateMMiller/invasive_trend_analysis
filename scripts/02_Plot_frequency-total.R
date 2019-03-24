@@ -86,8 +86,8 @@ results_PF_T<-results_PF_T %>% mutate(coef=ifelse(grepl('cycle',term),'Slope','I
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_PF_T<-by_park_PF_T %>% 
-  mutate(conf.coef=map(model,~bootMer(.x,FUN=fixef,nsim=1000, parallel='snow',
-    ncpus=7))) %>% select(conf.coef)  
+  mutate(conf.coef=map(model,~bootMer(.x,FUN=fixed_fun,nsim=1000, parallel='snow',
+    ncpus=11))) %>% select(conf.coef)  
 
 coefs_PF_T<-by_park_coefs_PF_T %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
@@ -112,7 +112,7 @@ results_final_PF_T<-results2_PF_T %>%
 
 write.csv(results_final_PF_T,'./results/results_PFreq-total-coefs.csv', row.names=F)
 
-View(results_final_PF_T)
+#View(results_final_PF_T)
 
 # Did not bootstrap for responses like other metrics. Ultimately only interested if the odds
 # of a plot having an invasive increases over time, which we get at with the coefs. 
