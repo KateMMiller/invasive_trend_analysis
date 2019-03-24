@@ -39,8 +39,8 @@ prelim_by_park_QR_T<-df_park %>% mutate(model=map(data,qrich.mod),
   resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 diag_QR_T<-unnest(prelim_by_park_QR_T, resids, pred)
-#res_QR_T<-residPlot(diag_QR_T)
-#hist_QR_T<-histPlot(diag_QR_T)
+res_QR_T<-residPlot(diag_QR_T)
+hist_QR_T<-histPlot(diag_QR_T)
 
 # Check conversion
 conv_QR_T<-unlist(prelim_by_park_QR_T[['model']]) %>% map('optinfo') %>% 
@@ -153,7 +153,6 @@ respCIs_final_QR_T<-merge(respCIs2_QR_T,
 respCIs_final_QR_T<-respCIs_final_QR_T %>% 
   mutate(sign=as.factor(sign), park=reorder(park,-lat.rank)) %>% 
   arrange(lat.rank,cycle)
-
 
 #View(respCIs_final_QR_T)
 

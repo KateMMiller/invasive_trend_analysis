@@ -29,7 +29,7 @@ df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) 
   filter((park!='ACAD'& nonzero>0.1)|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild)
 
-df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & !(park=='SAHI') & (park!='WOTR')) %>% droplevels()
+df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & (park!='SAHI') & (park!='WOTR')) %>% droplevels()
 
 df_park<-df2 %>% group_by(park) %>% nest()
 
@@ -50,8 +50,8 @@ prelim_by_park_QR_G<-df_park %>% mutate(model=map(data,qrich.mod),
   resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 diag_QR_G<-unnest(prelim_by_park_QR_G, resids, pred)
-#res_QR_G<-residPlot(diag_QR_G)
-#hist_QR_G<-histPlot(diag_QR_G)  
+res_QR_G<-residPlot(diag_QR_G)
+hist_QR_G<-histPlot(diag_QR_G)  
 
 # Check conversion
 conv_QR_G<-unlist(prelim_by_park_QR_G[['model']]) %>% map('optinfo') %>% 
