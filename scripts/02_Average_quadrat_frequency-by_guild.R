@@ -51,8 +51,8 @@ prelim_by_park_QF_G<-df_park %>% mutate(model=map(data,qfreq.mod),
   resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 diag_QF_G<-unnest(prelim_by_park_QF_G, resids, pred)
-#res_QF_G<-residPlot(diag_QF_G)
-#hist_QF_G<-histPlot(diag_QF_G) 
+res_QF_G<-residPlot(diag_QF_G)
+hist_QF_G<-histPlot(diag_QF_G) 
 
 # Check conversion
 conv_QF_G<-unlist(prelim_by_park_QF_G[['model']]) %>% map('optinfo') %>% 

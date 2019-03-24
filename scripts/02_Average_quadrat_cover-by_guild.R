@@ -7,7 +7,6 @@ library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for glmer with Poisson
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-#library(sjstats) # for overdisp
 library(prediction) # for find_data(model) function
 library(lmeresampler)
 
@@ -30,7 +29,7 @@ df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) 
   filter((park!='ACAD'& nonzero>0.1)|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild)
 
-df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & !(park=='SAHI') & (park!='WOTR')) %>% droplevels()
+df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & (park!='SAHI') & (park!='WOTR')) %>% droplevels()
 
 df_park<-df2 %>% group_by(park) %>% nest()
 
@@ -199,5 +198,5 @@ respCIs_final_AC_G<-respCIs_final_AC_G %>%
     park=reorder(park,-lat.rank)) %>% 
   arrange(lat.rank,guild,cycle)
 
-View(respCIs_final_AC_G)
+#View(respCIs_final_AC_G)
 write.csv(respCIs_final_AC_G,"./results/results_avecov-by_guild-response_NP.csv")

@@ -16,7 +16,7 @@ addC1_COLO<-function(df){
 #++++++++++++++++++++++++++++++++++
 # Loading tables of coefficients 
 #++++++++++++++++++++++++++++++++++
-avgcov_total_coefs<-read.csv("../results/results_avecov-total-coefs.csv")
+avgcov_total_coefs<-read.csv("../results/results_avecov-total-coefs_NP.csv")
 sign_inc_AT<-avgcov_total_coefs %>% filter(coef=='Slope' & sign==1 & estimate>0) %>% 
   summarise(numsign=as.character(sum(sign))) 
 sign_inc_AT
@@ -25,7 +25,7 @@ sign_dec_AT<-avgcov_total_coefs %>% filter(coef=='Slope' & sign==1 & estimate<0)
   summarise(numsign=as.character(sum(sign)))
 sign_dec_AT
 
-qfreq_total_coefs<-read.csv("../results/results_qfreq-total-coefs.csv")
+qfreq_total_coefs<-read.csv("../results/results_qfreq-total-coefs_NP.csv")
 sign_inc_QF<-qfreq_total_coefs %>% filter(coef=='Slope' & sign==1 & estimate>0) %>% 
   summarise(numsign=as.character(sum(sign))) 
 sign_inc_QF
@@ -34,7 +34,7 @@ sign_dec_QF<-qfreq_total_coefs %>% filter(coef=='Slope' & sign==1 & estimate<0) 
   summarise(numsign=as.character(sum(sign))) 
 sign_dec_QF
 
-qrich_total_coefs<-read.csv("../results/results_qrich-total-coefs.csv")
+qrich_total_coefs<-read.csv("../results/results_qrich-total-coefs_NP.csv")
 sign_inc_QR<-qrich_total_coefs %>% filter(coef=='Slope' & sign==1 & estimate>0) %>% 
   summarise(numsign=as.character(sum(sign))) 
 sign_inc_QR
@@ -43,7 +43,7 @@ sign_dec_QR<-qrich_total_coefs %>% filter(coef=='Slope' & sign==1 & estimate<0) 
   summarise(numsign=as.character(sum(sign))) 
 sign_dec_QR
 #-------- Plot frequency takes more work, b/c have to add non-modeled parks back in
-pfreq_total_coefs<-read.csv('../results/results_PFreq-total-coefs.csv')
+pfreq_total_coefs<-read.csv('../results/results_PFreq-total-coefs_NP.csv')
 pfreq_total_slopes<-pfreq_total_coefs %>% filter(coef=='Slope') %>% droplevels()
 
 dft<-read.csv("../data/NETN-MIDN-ERMN-NCRN_total_invasives.csv")
@@ -70,9 +70,9 @@ sign_dec_PF<-pfreq_total %>% filter(coef=='Slope' & sign==1 & estimate<0) %>%
 sign_dec_PF
 
 #------
-avgcov_guild_coefs<-read.csv("../results/results_avecov-by_guild-coefs.csv")
-qfreq_guild_coefs<-read.csv("../results/results_qfreq-by_guild-coefs.csv")
-qrich_guild_coefs<-read.csv("../results/results_qrich-by_guild-coefs.csv")
+avgcov_guild_coefs<-read.csv("../results/results_avecov-by_guild-coefs_NP.csv")
+qfreq_guild_coefs<-read.csv("../results/results_qfreq-by_guild-coefs_NP.csv")
+qrich_guild_coefs<-read.csv("../results/results_qrich-by_guild-coefs_NP.csv")
 
 # For park-level plot % frequency
 # Some parks weren't modeled because either all 1 or all 0.
@@ -98,7 +98,7 @@ pfreq_guild<-pfreq_guild_comb %>% mutate(guild=recode(guild,'Herbaceous'='Forb')
 #---------------------------------------------
 # Average % Cover - Total
 #---------------------------------------------
-avgcov_total<-read.csv("../results/results_avecov-total-response.csv")[,-1]
+avgcov_total<-read.csv("../results/results_avecov-total-response_NP.csv")[,-1]
 avgcov_total<-addC1_COLO(avgcov_total)
 
 avgcov_total<- avgcov_total %>% arrange(lat.rank) %>% 
@@ -109,7 +109,7 @@ plot_avgcov_t
 #-----------------------------------------------
 # Quadrat % Frequency - Total
 #-----------------------------------------------
-qfreq_total<-read.csv("../results/results_qfreq-total-response.csv")[,-1]
+qfreq_total<-read.csv("../results/results_qfreq-total-response_NP.csv")[,-1]
 qfreq_total<-addC1_COLO(qfreq_total)
 
 qfreq_total<- qfreq_total %>% arrange(lat.rank) %>% 
@@ -120,7 +120,7 @@ plot_qfreq_t
 #-----------------------------------------------
 # Quadrat Richness - Total
 #-----------------------------------------------
-qrich_total<-read.csv("../results/results_qrich-total-response.csv")[,-1]
+qrich_total<-read.csv("../results/results_qrich-total-response_NP.csv")[,-1]
 qrich_total<-addC1_COLO(qrich_total)
 
 qrich_total<- qrich_total %>% arrange(lat.rank) %>% 
@@ -144,7 +144,7 @@ plot_qrich_t_all<-plotTotalByMetrics(qrich_total, metric= "Average Quadrat Richn
 #-----------------------------------------------
 # Average % Cover - by Guild
 #-----------------------------------------------
-avgcov_guild<-read.csv("../results/results_avecov-by_guild-response.csv")[,-1]
+avgcov_guild<-read.csv("../results/results_avecov-by_guild-response_NP.csv")[,-1]
 avgcov_guild<-addC1_COLO(avgcov_guild)
 avgcov_guild<-avgcov_guild %>% mutate(guild=recode(guild,'Herbaceous'='Forb'))
 
@@ -156,7 +156,7 @@ plot_avgcov_g<-plotCoverParkGuild(avgcov_guild)
 #-----------------------------------------------
 # Quadrat % Frequency - by Guild
 #-----------------------------------------------
-qfreq_guild<-read.csv("../results/results_qfreq-by_guild-response.csv")[,-1]
+qfreq_guild<-read.csv("../results/results_qfreq-by_guild-response_NP.csv")[,-1]
 qfreq_guild<-addC1_COLO(qfreq_guild)
 qfreq_guild<-qfreq_guild %>% mutate(guild=recode(guild,'Herbaceous'='Forb'))
 
@@ -168,7 +168,7 @@ plot_qfreq_g<-plotQFreqParkGuild(qfreq_guild)
 #-----------------------------------------------
 # Quadrat Richness - by Guild
 #-----------------------------------------------
-qrich_guild<-read.csv("../results/results_qrich-by_guild-response.csv")[,-1]
+qrich_guild<-read.csv("../results/results_qrich-by_guild-response_NP.csv")[,-1]
 qrich_guild<-addC1_COLO(qrich_guild)
 qrich_guild<-qrich_guild %>% mutate(guild=recode(guild,'Herbaceous'='Forb'))
 

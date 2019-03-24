@@ -101,7 +101,7 @@ results_final_AC_T<-results2_AC_T %>%
          sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,coef,estimate,lower,upper,sign) 
 
-View(results_final_AC_T)
+#View(results_final_AC_T)
 write.csv(results_final_AC_T,'./results/results_avecov-total-coefs_NP.csv', row.names=F)
 
 ##  ----  model_response_AC_T ---- 
@@ -154,6 +154,5 @@ respCIs_final_AC_T<-respCIs_final_AC_T %>%
   arrange(lat.rank,cycle)
 
 #View(respCIs_final_AC_T)
-
 write.csv(respCIs_final_AC_T,"./results/results_avecov-total-response_NP.csv")
 

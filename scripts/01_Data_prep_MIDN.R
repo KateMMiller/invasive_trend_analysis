@@ -2,13 +2,21 @@
 # Code for invasive trend analysis
 #-----------------------------------
 library(forestMIDN)
-
+options(scipen=100,digits=6)
 #++++++++++++++++++++++++++++++++++
 # NOTE: These summaries are only include exotic species that were on the indicator list
 # since 2007 to ensure that comparisons across cycles are consistent. 
 #++++++++++++++++++++++++++++++++++
-spp<-c("Ligustrum", "Ligustrum vulgare","Oplismenus hirtellus ssp. undulatifolius")# Species that
+spp_to_remove_from_trends<-c("Ligustrum", "Ligustrum vulgare","Oplismenus hirtellus ssp. undulatifolius")# Species that
 # are exotic and were added to indicator list after 2007.
+
+notinv<-c('Aristolochia macrophylla', 'Catalpa bignonioides','Catalpa speciosa',"Cirsium arvense", "Duchesnea indica", 
+          "Glechoma hederacea","Malus", "Symphoricarpos orbiculatus", "Abies concolor",'Aesculus hippocastanum',
+          "Amorpha fruticosa","Cladrastis kentukea","Forsythia suspensa","Hemerocallis fulva","Larix decidua",
+          "Malus pumila","Malus sieboldii","Pinus nigra","Poncirus trifoliata","Prunus domestica","Ribes rubrum",
+          "Salix alba","Sambucus nigra ssp. nigra","Taxus cuspidata","Ulmus procera",
+          "Persicaria longiseta", "Picea abies",'Prunus avium','Prunus cerasus','Pyrus','Vinca minor' )
+# species that are exotic but not invasive
 
 #----------------------------------
 # Function to remove PETE-185 and COLO-380
@@ -30,57 +38,151 @@ park.plots1<-merge(park.plots2, quadsamp[,c("Event_ID","numQuadrats")], by="Even
 park.plots<-rmRejected(park.plots1)
 
 #---------------------------
-# First summarize data by guild
+# Summarise data by species for each park
+#---------------------------
+quads1<-joinQuadData(speciesType='exotic',park='all',from=2007,to=2018,QAQC=F)
+quads1$Latin_Name<-as.factor(quads1$Latin_Name)
+quads1<-rmRejected(quads1)
+quads1<- quads1 %>% mutate(cycle= case_when(Year<=2010~1, 
+                                            between(Year,2011,2014)~2, 
+                                            between(Year,2015,2018)~3),
+                           Latin_Name=ifelse(is.na(Latin_Name),'noinvspp',paste(Latin_Name)))
+
+quads2<-quads1 %>% filter(!(Latin_Name %in% notinv))
+
+quadscov<-quads2 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.cover) %>% 
+  spread(Latin_Name,avg.cover,fill=0)
+
+
+quadscov1<-quadscov %>% mutate(`Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera maackii`) %>% select(- `Lonicera maackii`)
+
+quadsfreq<-quads2 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.freq) %>% 
+  spread(Latin_Name,avg.freq,fill=0)
+
+quadsfreq1<-quadsfreq %>% mutate(`Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera maackii`) %>% select(- `Lonicera maackii`)
+
+quadscov2<-quadscov1 %>% gather("Latin_Name","avgcov", -(Event_ID:cycle))
+quadsfreq2<-quadsfreq1 %>% gather("Latin_Name","avgfreq",-(Event_ID:cycle))
+nrow(quadsfreq2)
+quads2<-merge(quadscov2,quadsfreq2,by=c("Event_ID","Unit_Code","Plot_Name","cycle","Latin_Name"), all.x=T, all.y=T)
+
+# MIDN species list
+midnspp<-makeSppList('exotic',from=2007, to=2018)
+exotpp<-data.frame(table(midnspp$Latin_Name))
+
+midnspp$Latin_Name[is.na(midnspp$Latin_Name)]<-'noinvspp'
+table(complete.cases(midnspp$Latin_Name))
+midnspp1<-rmRejected(midnspp)
+midnspp1<- midnspp1 %>% mutate(cycle= case_when(Year<=2010~1, 
+                                                between(Year,2011,2014)~2, 
+                                                between(Year,2015,2018)~3),
+                               present=1) %>% 
+  select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name, present)
+
+midnspp2<-midnspp1 %>% filter(!(Latin_Name %in% notinv))
+
+
+midnspp3<-midnspp2 %>% spread(Latin_Name, present, fill=0)
+midnspp4<-midnspp3 %>% mutate(Elaeagnus= Elaeagnus + `Elaeagnus angustifolia`+ `Elaeagnus umbellata`,
+                              Euonymus= `Euonymus alatus`+ Euonymus, 
+                              Ligustrum= Ligustrum + `Ligustrum vulgare`,
+                              `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii` + `Lonicera maackii`) %>% 
+  select(-`Elaeagnus angustifolia`, `Elaeagnus umbellata`, -`Euonymus alatus`,
+          -`Ligustrum vulgare`, - `Lonicera morrowii`, -`Lonicera maackii`)
+
+midnspp5<-midnspp4 %>% gather('Latin_Name','plotfreq',-(Event_ID:cycle))
+nrow(midnspp5)
+
+sppcomb<-merge(midnspp5, quads2, by=c('Event_ID','Unit_Code','Plot_Name','cycle','Latin_Name'), all.x=T,all.y=T)
+sppcomb$avgcov[is.na(sppcomb$avgcov)]<-0
+sppcomb$avgfreq[is.na(sppcomb$avgfreq)]<-0
+table(sppcomb$Latin_Name)
+
+sppcomb2<-sppcomb %>% filter(!(Latin_Name %in% spp_to_remove_from_trends))
+spp_comb_final<-sppcomb2 %>% mutate(plot.freq=plotfreq, avg.cover=avgcov, quad.freq=avgfreq) %>% 
+  select(-Event_ID,-plotfreq,-avgcov, -avgfreq) %>% arrange(Plot_Name,cycle)
+
+write.csv(spp_comb_final, './data/MIDN/MIDN_invasive_species_data.csv')
+
+sppcomb2<-sppcomb %>% filter(Latin_Name!='noinvspp') %>% group_by(Unit_Code,cycle,Latin_Name) %>% 
+  summarise(avgcov=mean(avgcov), avgfreq=mean(avgfreq), 
+            plotfreq=sum(plotfreq), numplots=n())
+head(sppcomb2)
+
+write.csv(sppcomb2,'./data/MIDN/MIDN_park-level_invasive_species_summary.csv', row.names=FALSE)
+
+topspp<-sppcomb2 %>% filter(cycle==3) %>% group_by(Latin_Name) %>% summarise(plotfreq=sum(plotfreq)) %>% arrange(-plotfreq)
+#View(topspp)
+
+#---------------------------
+# Summarize data by guild
 #---------------------------
 # Need to set guilds to only count a species once
-table(plants$Tree, plants$Shrub)
-table(plants$Shrub, plants$Vine)
-table(plants$Graminoid,plants$Herbaceous)
 
-plants<-plants %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
-  Shrub=ifelse(Tree+Shrub>1,1,Shrub),Shrub=ifelse(Vine==1,1,Shrub))
-table(plants$Exotic)
+# Checking list
+#plants %>% filter(Tree==TRUE & Shrub==TRUE & Exotic==TRUE) %>% select(Latin_Name) %>% unique()
+#plants %>% filter(Vine==TRUE & Shrub==TRUE & Exotic==TRUE) %>% select(Latin_Name) %>% unique()
 
-plants<-plants %>% mutate(Indicator_MIDN2=ifelse((Indicator_MIDN==1 & !Latin_Name %in% spp)|(Exotic==1 & Tree==1),1,0))
-table(plants$Indicator_MIDN2,plants$Indicator_MIDN)
+plants<-plants %>% mutate(Tree=ifelse(Tree==TRUE & Shrub==TRUE, FALSE, Tree))
+
+plants2<-plants %>% filter(!Latin_Name %in% spp_to_remove_from_trends)
+plants2<-plants2 %>% filter(!Latin_Name %in% notinv)
+
+plants2 %>% filter(Indicator_MIDN==TRUE & Exotic==TRUE) %>% select(Latin_Name) %>% arrange(Latin_Name)
+# Need to include trees and shrubs that are invasive but not on the indicator list
+
+plants3<-plants2 %>% mutate(indinv= ifelse((Indicator_MIDN==TRUE & Exotic==TRUE) |
+                                             (Tree==TRUE & Exotic==TRUE)|
+                                             (Shrub==TRUE & Exotic==TRUE), TRUE, FALSE))
+
+# plants3 does not include species that were added to the indicator list after the first cycle
+  
+#plants3 %>% filter(indinv==TRUE) %>% select(Latin_Name) %>% arrange(Latin_Name)
 
 # Plot Frequency and Plot Richness
 spplist1<-makeSppList(speciesType='exotic')
 spplist<-rmRejected(spplist1)
 
-spplist<-spplist %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
-  Shrub=ifelse(Tree+Shrub>1,1,Shrub))
+spplist<-spplist %>% mutate(Tree=ifelse(Tree==TRUE & Shrub==TRUE, FALSE, Tree))
 
+spplist2<-spplist %>% filter(!Latin_Name %in% spp_to_remove_from_trends)
+spplist2<-spplist2 %>% filter(!Latin_Name %in% notinv)
+
+names(spplist2)
 spplist[,c(13:22,25:29)][is.na(spplist[,c(13:22,25:29)])]<-0
-#spplist$pres.temp<-ifelse(rowSums(spplist[,c(13:22)])>0,1,0)# Changed this for MIDN to only include quad data
-spplist$pres.temp<-ifelse(spplist$avg.quad.cover>0,1,0)
-spplist2<-spplist %>% left_join(.,plants[,c("TSN","Indicator_MIDN2")], by='TSN') %>% 
-  filter(Indicator_MIDN2==1) %>% droplevels()
 
-head(spplist2)
+spplist2$pres.temp<-ifelse(spplist2$avg.quad.cover>0,1,0)
+spplist3<-spplist2 %>% left_join(.,plants3[,c("TSN","indinv")], by='TSN') %>% 
+  filter(indinv==TRUE) %>% droplevels()
 
-spplist3<-spplist2 %>% group_by(Event_ID,Tree,Shrub,Herbaceous,Graminoid) %>% 
+spplist4<-spplist3 %>% group_by(Event_ID,Tree,Shrub,Herbaceous,Graminoid) %>% 
   summarise(numPlotSpp=sum(pres.temp),plotFreq=ifelse(sum(pres.temp)>0,1,0))
 
-spplist4<-merge(park.plots,spplist3,by="Event_ID",all.x=T)
+spplist5<-merge(park.plots,spplist4,by="Event_ID",all.x=T)
 
-plotFreq<-spplist4 %>% select(Event_ID,Tree:Graminoid,plotFreq) %>% gather(guild,present,Tree:Graminoid) %>%  
+plotFreq<-spplist5 %>% select(Event_ID,Tree:Graminoid,plotFreq) %>% gather(guild,present,Tree:Graminoid) %>%  
   filter(present==1) %>% select(-present) %>% group_by(Event_ID,guild) %>% summarise(plotFreq=ifelse(sum(plotFreq)>0,1,0)) 
 
-numPlotSpp<-spplist4 %>% select(Event_ID,Tree:Graminoid,numPlotSpp) %>% 
+numPlotSpp<-spplist5 %>% select(Event_ID,Tree:Graminoid,numPlotSpp) %>% 
   gather(guild,present,Tree:Graminoid) %>% filter(present==1) %>% select(-present) %>% 
   group_by(Event_ID,guild) %>% summarise(numPlotSpp=sum(numPlotSpp))
+
+plotFreq
 
 #---------------------------
 # Quadrat richness by guild
 quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',speciesType='exotic') 
 quad1<-rmRejected(quad)
 
-quad1<-quad1 %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
-  Shrub=ifelse(Tree+Shrub>1,1,Shrub),Shrub=ifelse(Vine==1,1,Shrub)) %>% select(-Vine)
+head(quad1)
 
-quad2<-quad1 %>% left_join(.,plants[,c("TSN","Indicator_MIDN2")], by='TSN') %>% 
-  filter(Indicator_MIDN2==1) %>% droplevels()
+quad1<-quad1 %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
+  Shrub=ifelse(Tree+Shrub>1,1,Shrub)) %>% select(-Vine)
+
+quad2<-quad1 %>% left_join(.,plants3[,c("TSN","indinv")], by='TSN') %>% 
+  filter(indinv==1) %>% droplevels()
+
+#plants3 %>% filter(indinv==1) %>% select(Latin_Name) %>% arrange(Latin_Name)
 
 quad.r<-quad2 %>% group_by(Event_ID,Tree,Shrub,Herbaceous,Graminoid) %>% 
   summarise(numQuadrats=first(numQuadrats),A2=sum(A2),A5=sum(A5),A8=sum(A8),AA=sum(AA),
@@ -155,8 +257,8 @@ spplist[,c(13:22,25:29)][is.na(spplist[,c(13:22,25:29)])]<-0
 #spplist$pres.temp<-ifelse(rowSums(spplist[,c(13:22)])>0,1,0)# Changed this for MIDN to only include quad data
 spplist$pres.temp<-ifelse(spplist$avg.quad.cover>0,1,0)
 
-spplist2<-spplist %>% left_join(.,plants[,c("TSN","Indicator_MIDN2")], by='TSN') %>% 
-  filter(Indicator_MIDN2==1) %>% droplevels()
+spplist2<-spplist %>% left_join(.,plants3[,c("TSN","indinv")], by='TSN') %>% 
+  filter(indinv==1) %>% droplevels()
 
 plotFreq<-spplist2 %>% group_by(Event_ID) %>% 
   summarise(numPlotSpp=sum(pres.temp),plotFreq=ifelse(sum(pres.temp)>0,1,0))
@@ -168,8 +270,8 @@ quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',specie
 quad1<-rmRejected(quad) %>% arrange(Plot_Name)
 quad1<-quad1 %>% mutate(Shrub=ifelse(Shrub+Vine>0,1,0)) %>% select(-Vine)
 
-quad2<-quad1 %>% left_join(.,plants[,c("TSN","Indicator_MIDN2")], by='TSN') %>% 
-  filter(Indicator_MIDN2==1) %>% droplevels()
+quad2<-quad1 %>% left_join(.,plants3[,c("TSN","indinv")], by='TSN') %>% 
+  filter(indinv==TRUE) %>% droplevels()
 
 quad.r<-quad2 %>% group_by(Event_ID) %>%
   summarise(numQuadrats=first(numQuadrats),A2=sum(A2),A5=sum(A5),A8=sum(A8),AA=sum(AA),
@@ -204,5 +306,7 @@ colnames(comb2)<-c("Event_ID","Location_ID","Unit_Code","Plot_Name","Plot_Number
   "Panel","Year","Event_QAQC","cycle","plot.freq","avg.quad.r","avg.cover","quad.freq","qpct.freq","numPlotSpp")
 comb2<-comb2 %>% arrange(Plot_Name,cycle)
 
-summary(comb2)
+head(comb2)
 write.csv(comb2,'./data/MIDN/MIDN_invasive_total_data.csv',row.names=F)
+
+View(comb2)
