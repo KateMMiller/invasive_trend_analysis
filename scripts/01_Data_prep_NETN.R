@@ -91,11 +91,11 @@ sppcomb$avgcov[is.na(sppcomb$avgcov)]<-0
 sppcomb$avgfreq[is.na(sppcomb$avgfreq)]<-0
 
 head(sppcomb)
-spp_comb_final<-sppcomb %>% mutate(plot.freq=plotfreq, avg.cover=avgcov,quad.freq=avgfreq) %>% 
+spp_comb_final<-sppcomb %>% mutate(plot.freq=plotfreq, avg.cover=avgcov,quad.freq=avgfreq, qpct.freq=avgfreq*100) %>% 
   select(-Event_ID,-plotfreq,-avgcov, -avgfreq) %>% arrange(Plot_Name,cycle)
 head(spp_comb_final)
 
-write.csv(spp_comb_final, './data/NETN/NETN_invasive_species_data.csv')
+write.csv(spp_comb_final, './data/NETN/NETN_invasive_species_data.csv', row.names=FALSE)
 
 sppcomb2<-sppcomb %>% filter(Latin_Name!='noinvspp') %>% group_by(Unit_Code,cycle,Latin_Name) %>% 
                       summarise(avgcov=mean(avgcov), avgfreq=mean(avgfreq), 
