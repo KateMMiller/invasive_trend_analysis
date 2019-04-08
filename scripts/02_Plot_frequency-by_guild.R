@@ -4,10 +4,9 @@
 ## ---- codesetup_PF_G ---- 
 #-----------------------------------
 library(tidyverse) # attaches most of the important packages in the tidyverse
-library(lme4) # for glmer with Poisson
+library(lme4) # for glmer with logistic regression
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
 library(prediction) # for find_data(model) function
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
@@ -104,7 +103,7 @@ results_PF_G<-results_PF_G %>% mutate(guild=guild_labels2_PF_G$guild2,
 by_park_coefs_PF_G<-by_park_PF_G %>% 
   mutate(conf.coef=map(model,~bootMer(.x,FUN=fixed_fun,nsim=1000, parallel='snow',
     ncpus=11))) %>% 
-  select(conf.coef)  
+  select(conf.coef)  # parametric bootstrap
 
 coefs_PF_G<-by_park_coefs_PF_G %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 

@@ -4,18 +4,15 @@
 ## ---- codesetup_AC_S ---- 
 #-----------------------------------
 library(tidyverse) # attaches most of the important packages in the tidyverse
-library(lme4) # for glmer with Poisson
+library(lme4) # for lmer 
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
 library(prediction) # for find_data(model) function
-library(lmeresampler)
+library(lmeresampler) # for case bootstrap
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
 source('./scripts/functions_for_ANALYSIS.R') # File containing functions
-
-glmerCtlList <- glmerControl(optimizer=c("bobyqa","Nelder_Mead"),
-  optCtrl=list(maxfun=2e10000)) # set controls for glmer so longer before times out
 
 #-----------------------------------
 ## ---- readdata_AC_S ----
@@ -100,7 +97,7 @@ results_AC_S$term<-ordered(results_AC_S$term,
 results_AC_S<-results_AC_S %>% arrange(park,term) %>% 
   mutate(estimate=round(estimate,3))
 
-# create guild labels, so we know what the first level for each model is.
+# create species labels, so we know what the first level for each model is.
 species_labels1_AC_S<-df1 %>% group_by(park,species) %>% summarise(species2=first(species)) %>% 
   select(-species) %>%  arrange(park,species2) 
 
