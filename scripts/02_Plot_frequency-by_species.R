@@ -4,7 +4,7 @@
 ## ---- codesetup_PF_S ---- 
 #-----------------------------------
 library(tidyverse) # attaches most of the important packages in the tidyverse
-library(lme4) # for glmer with Poisson
+library(lme4) # for glmer with logistic regression
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
 library(prediction) # for find_data(model) function
