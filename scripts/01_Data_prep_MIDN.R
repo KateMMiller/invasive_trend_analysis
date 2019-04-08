@@ -43,10 +43,16 @@ park.plots<-rmRejected(park.plots1)
 quads1<-joinQuadData(speciesType='exotic',park='all',from=2007,to=2018,QAQC=F)
 quads1$Latin_Name<-as.factor(quads1$Latin_Name)
 quads1<-rmRejected(quads1)
-quads1<- quads1 %>% mutate(cycle= case_when(Year<=2010~1, 
-                                            between(Year,2011,2014)~2, 
-                                            between(Year,2015,2018)~3),
-                           Latin_Name=ifelse(is.na(Latin_Name),'noinvspp',paste(Latin_Name)))
+head(quads1)
+
+quads1<- quads1 %>% mutate(cycle2=case_when(Unit_Code=='COLO' & cycle=="Cycle2" ~ 3,
+                                           Unit_Code=='COLO' & cycle=="Cycle1" ~ 2,
+                                           Unit_Code!='COLO' & cycle=="Cycle1" ~ 1,
+                                           Unit_Code!='COLO' & cycle=="Cycle2" ~ 2,
+                                           Unit_Code!='COLO' & cycle=="Cycle3" ~ 3),
+                           cycle=cycle2,
+                           Latin_Name=ifelse(is.na(Latin_Name),'noinvspp',paste(Latin_Name))) %>% select(-cycle2) 
+head(quads1)
 
 quads2<-quads1 %>% filter(!(Latin_Name %in% notinv))
 
@@ -73,11 +79,15 @@ exotpp<-data.frame(table(midnspp$Latin_Name))
 midnspp$Latin_Name[is.na(midnspp$Latin_Name)]<-'noinvspp'
 table(complete.cases(midnspp$Latin_Name))
 midnspp1<-rmRejected(midnspp)
-midnspp1<- midnspp1 %>% mutate(cycle= case_when(Year<=2010~1, 
-                                                between(Year,2011,2014)~2, 
-                                                between(Year,2015,2018)~3),
-                               present=1) %>% 
-  select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name, present)
+head(midnspp1)
+
+midnspp1<- midnspp1 %>% mutate(cycle2=case_when(Unit_Code=='COLO' & cycle=="Cycle2" ~ 3,
+                          Unit_Code=='COLO' & cycle=="Cycle1" ~ 2,
+                          Unit_Code!='COLO' & cycle=="Cycle1" ~ 1,
+                          Unit_Code!='COLO' & cycle=="Cycle2" ~ 2,
+                          Unit_Code!='COLO' & cycle=="Cycle3" ~ 3),
+         cycle=cycle2,
+         present=1) %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,present)  
 
 midnspp2<-midnspp1 %>% filter(!(Latin_Name %in% notinv))
 
@@ -99,19 +109,19 @@ sppcomb$avgfreq[is.na(sppcomb$avgfreq)]<-0
 table(sppcomb$Latin_Name)
 
 sppcomb2<-sppcomb %>% filter(!(Latin_Name %in% spp_to_remove_from_trends))
-spp_comb_final<-sppcomb2 %>% mutate(plot.freq=plotfreq, avg.cover=avgcov, quad.freq=avgfreq) %>% 
+spp_comb_final<-sppcomb2 %>% mutate(plot.freq=plotfreq, avg.cover=avgcov, quad.freq=avgfreq, qpct.freq=avgfreq*100) %>% 
   select(-Event_ID,-plotfreq,-avgcov, -avgfreq) %>% arrange(Plot_Name,cycle)
 
-write.csv(spp_comb_final, './data/MIDN/MIDN_invasive_species_data.csv')
+write.csv(spp_comb_final, './data/MIDN/MIDN_invasive_species_data.csv', row.names=FALSE)
 
 sppcomb2<-sppcomb %>% filter(Latin_Name!='noinvspp') %>% group_by(Unit_Code,cycle,Latin_Name) %>% 
-  summarise(avgcov=mean(avgcov), avgfreq=mean(avgfreq), 
-            plotfreq=sum(plotfreq), numplots=n())
+  summarise(avgcov=mean(avgcov), avgfreq=mean(avgfreq), plotfreq=sum(plotfreq), numplots=n())
 head(sppcomb2)
 
 write.csv(sppcomb2,'./data/MIDN/MIDN_park-level_invasive_species_summary.csv', row.names=FALSE)
 
 topspp<-sppcomb2 %>% filter(cycle==3) %>% group_by(Latin_Name) %>% summarise(plotfreq=sum(plotfreq)) %>% arrange(-plotfreq)
+head(topspp)
 #View(topspp)
 
 #---------------------------

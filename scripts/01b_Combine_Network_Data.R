@@ -104,6 +104,7 @@ colnames(midn_guild)<-c("network","park","plot_name","plot_number","x_coord",
   "avg.cover",'quad.freq','qpct.freq','num.plot.spp')
 
 # in MIDN shift COLO so cycle 1 is 2 and cycle 2 is 3 so timelines match better
+table(midn_guild$park, midn_guild$cycle)
 midn_guild<- midn_guild %>% mutate(cycle=case_when(park=='COLO' & cycle==2 ~ 3,
   park=='COLO' & cycle==1 ~ 2,
   park!='COLO' & cycle==1 ~ 1,
@@ -168,3 +169,62 @@ comb_guild2<-comb_guild2 %>% arrange(desc(network),plot_name,cycle)
 #View(comb_guild2)
 
 write.csv(comb_guild2,'./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv', row.names=F)
+
+#-----------------
+# Invasives by species
+#-----------------
+#---NETN Invasives by species
+netn_species<-read.csv("./data/NETN/NETN_invasive_species_data.csv")
+
+netn_species<-netn_species %>% mutate(network='NETN') %>% 
+  select(network,Unit_Code:qpct.freq)
+
+names(comb_totinv2)
+
+colnames(netn_species)<-c("network","park","plot_name","cycle",'species',"plot.freq",
+                        "avg.cover",'quad.freq','qpct.freq')
+
+netn_species_final<-merge(netn_species,comb_totinv[,c('plot_name','x_coord','y_coord','cycle','lat.rank')], 
+                          by=c('plot_name', 'cycle'), all.x=T)
+netn_species_final<-netn_species_final %>% 
+  select(network, park, plot_name, x_coord, y_coord, lat.rank, species, everything())
+head(netn_species_final)
+
+#---MIDN Invasives by species
+midn_species<-read.csv("./data/MIDN/MIDN_invasive_species_data.csv")
+names(midn_species)
+
+midn_species<-midn_species %>% mutate(network='midn') %>% 
+  select(network,Unit_Code:qpct.freq)
+
+colnames(midn_species)<-c("network","park","plot_name","cycle",'species',"plot.freq",
+                          "avg.cover",'quad.freq','qpct.freq')
+
+midn_species_final<-merge(midn_species,comb_totinv[,c('plot_name','x_coord','y_coord','cycle','lat.rank')], 
+                          by=c('plot_name', 'cycle'), all.x=T)
+midn_species_final<-midn_species_final %>% 
+  select(network, park, plot_name, x_coord, y_coord, lat.rank, species, everything())
+head(midn_species_final)
+
+#---ERMN Invasives by species
+
+#---NCRN Invasives by species
+
+comb_species<-rbind(netn_species_final,midn_species_final)
+
+# Need to add NAs for all plots in C1 for COLO, to make plotting easier
+COLO.c2<-comb_species %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
+# taking COLO C2 and turn it into C1 with NAs
+table(comb_species$park,comb_species$cycle)
+names(COLO.c1)
+
+COLO.c1<-COLO.c2 %>% mutate(cycle=1)
+COLO.c1[,c(7, 9:12)][!is.na(COLO.c1[,c(7, 9:12)])]<-NA
+comb_species2<-rbind(comb_species,COLO.c1) 
+
+comb_species2<-comb_species2 %>% mutate(qpct.freq=ifelse(network!='NCRN',qpct.freq*100,qpct.freq))
+
+comb_species2<-comb_species2 %>% arrange(desc(network),plot_name,cycle) 
+View(comb_species2)
+
+write.csv(comb_species2,'./data/NETN-MIDN_species_invasives.csv', row.names=F)

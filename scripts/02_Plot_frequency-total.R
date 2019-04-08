@@ -4,11 +4,10 @@
 ## ---- codesetup_PF_T ---- 
 #-----------------------------------
 library(tidyverse) # attaches most of the important packages in the tidyverse
-library(lme4) # for glmer with Poisson
+library(lme4) # for glmer with logistic regression
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
 library(prediction) # for find_data(model) function
-library(lmeresampler)
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -87,7 +86,7 @@ results_PF_T<-results_PF_T %>% mutate(coef=ifelse(grepl('cycle',term),'Slope','I
 #-----------------------------------
 by_park_coefs_PF_T<-by_park_PF_T %>% 
   mutate(conf.coef=map(model,~bootMer(.x,FUN=fixed_fun,nsim=1000, parallel='snow',
-    ncpus=11))) %>% select(conf.coef)  
+    ncpus=11))) %>% select(conf.coef)  # parametric bootstrap
 
 coefs_PF_T<-by_park_coefs_PF_T %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 

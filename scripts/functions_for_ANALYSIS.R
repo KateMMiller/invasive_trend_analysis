@@ -67,6 +67,22 @@ confFun<-function(model){
     predict(model,newdata=newdf, type='response', re.form=NA)} 
 }# re.form=NA means that the random effects remain fixed.
 
+confFunSpp<-function(model){
+  if (getME(model,'p')>2){
+    orig.df=data.frame(find_data(model))
+    cat(paste0(substr(orig.df$plot_name[[1]],1,4)," "))
+    newdf=orig.df %>% select(cycle,species) %>% arrange(cycle,species) %>% unique()
+    predict(model,
+            newdata=newdf,
+            type='response',re.form=NA)
+  } else {
+    orig.df=data.frame(find_data(model))
+    cat(paste0(substr(orig.df$plot_name[[1]],1,4), " "))
+    newdf=orig.df %>% select(cycle) %>% arrange(cycle) %>% unique()
+    predict(model,newdata=newdf, type='response', re.form=NA)} 
+}# re.form=NA means that the random effects remain fixed.
+
+
 getColNames<-function(model){
   if (getME(model,'p')>2){
     orig.df=data.frame(find_data(model))
@@ -79,6 +95,20 @@ getColNames<-function(model){
   } 
   return(cols)
 } # sets levels of guild and cycles in the correct order per park
+
+getColNamesSpp<-function(model){
+  if (getME(model,'p')>2){
+    orig.df=data.frame(find_data(model))
+    newdf=orig.df %>% select(cycle,species) %>% arrange(cycle,species) %>% unique()
+    cols=paste0('c',newdf$cycle,"_",newdf$species)
+  } else {
+    orig.df=data.frame(find_data(model))
+    newdf=orig.df %>% select(cycle) %>% arrange(cycle) %>% unique()
+    cols=paste0('c',newdf$cycle)
+  } 
+  return(cols)
+} # sets levels of guild and cycles in the correct order per park
+
 
 setColNames<-function(conf.est,cols){ 
   boot.t<-conf.est$t
