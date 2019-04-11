@@ -46,7 +46,7 @@ qfreq.mod<-function(df) {
   } else {lmer(qpct.freq~cycle+(1|plot_name),data=df)} 
 } # random slope had singular fit, so went with simpler rand. intercept
 
-prelim_by_park_QF_S<-df_park %>% mutate(model=map(data,avgcov.mod),
+prelim_by_park_QF_S<-df_park %>% mutate(model=map(data,qfreq.mod),
                   resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 diag_QF_S<-unnest(prelim_by_park_QF_S, resids, pred)
@@ -65,7 +65,7 @@ conv.tbl_QF_S # all 0s.
 #-----------------------------------
 # Average Invasive % Cover Results
 #-----------------------------------
-by_park_QF_S<-df_park %>% mutate(model=map(data,avgcov.mod),
+by_park_QF_S<-df_park %>% mutate(model=map(data,qfreq.mod),
     resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
 
 # summarize model output
@@ -173,7 +173,7 @@ results_final_QF_S<-results5_QF_S %>%
   select(park,species,coef,estimate,lower,upper,sign) 
 
 
-#View(results_final_QF_S)
+View(results_final_QF_S)
 write.csv(results_final_QF_S,'./results/results_qfreq-by_species-coefs_NP.csv', row.names=F)
 
 ##  ----  model_response_QF_S ---- 
@@ -184,10 +184,10 @@ write.csv(results_final_QF_S,'./results/results_qfreq-by_species-coefs_NP.csv', 
 # for each cycle by guild level 
 by_park_resp_QF_S<-by_park_QF_S %>% 
   mutate(conf.est=map(model,
-                      ~case_bootstrap(.x, fn=confFunSpp, B=1000, resample=c(TRUE,FALSE))))
+  ~case_bootstrap(.x, fn=confFunSpp, B=1000, resample=c(TRUE,FALSE))))
 
 by_park_resp_QF_S<-by_park_resp_QF_S %>% mutate(cols=map(model,~getColNamesSpp(.x)), 
-                                                boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
+  boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
 
 resp_QF_S<-by_park_resp_QF_S %>% mutate(boot.ci=map(boot.t,~bootCI(.x))) %>% 
   select(boot.ci) %>% unnest() # Calculate 95% CIs from bootstrap output
@@ -228,4 +228,4 @@ respCIs_final_QF_S<-respCIs_final_QF_S %>%
   arrange(lat.rank,species,cycle)
 
 View(respCIs_final_QF_S)
-write.csv(respCIs_final_QF_S,"./results/results_avecov-by_species-response_NP.csv")
+write.csv(respCIs_final_QF_S,"./results/results_qfreq-by_species-response_NP.csv")
