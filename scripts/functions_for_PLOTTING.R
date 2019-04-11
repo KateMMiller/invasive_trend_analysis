@@ -1,22 +1,13 @@
 #-----------------------------------
 # Code for Park-level Invasive Trend Analysis
 #-----------------------------------
-## @knitr codesetup
-
-library(knitr)
 library(tidyverse) # attaches most of the important packages in the tidyverse
-library(lme4) # for glmer with Poisson
+library(lme4) # for lmer and glmer
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
-#library(lmerTest) # for p-values based on Satterthwaite-approximated degrees of freedom 
-# I'm not using p-values anymore- using empiracle CIs instead.
-# attaching lmerTest automatically incorporates this test in the lmer output.
-library(prediction)
-
+library(directlabels) # for labeling lines in plots
+library(colorRamps) # for park-level color ramp
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
-
-
 
 # Results plotting functions
 # Park-level plot for total invasive cover
@@ -83,6 +74,31 @@ plotCoverGuild<-function(df){
       labs(x='Cycle', y='Avg. Quadrat % Cover')+scale_x_continuous(breaks=c(1,2,3)))
 } #
 
+# Park-level plot for invasive cover by species
+plotCoverParkSpecies<-function(df){ 
+  print(ggplot(df, aes(x=cycle2, y=mean, group=species))+ 
+          facet_wrap(~park,ncol=5,scales='free')+
+          geom_errorbar(aes(ymin=lower, ymax=upper, x=cycle2,
+                            colour=factor(species)), width=0.1,size=1, na.rm=TRUE)+
+          geom_line(aes(y=mean, x=cycle2,colour=factor(species), linetype=sign), na.rm=TRUE)+
+          geom_point(aes(y=mean, x=cycle2,colour=factor(species), shape=sign), 
+                     size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
+          scale_shape_manual(values=c(21,19))+
+          scale_fill_manual(values=c('white'))+
+          scale_linetype_manual(values=c('dashed','solid'))+ theme_bw()+
+          scale_color_manual(values = colramp)+ 
+          theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
+                plot.margin=unit(c(0.4,0.4,0.5,0.3),'lines'),
+                plot.title=element_text(hjust=0.5, size=12, margin=margin(t=10,b=-15)),
+                panel.background=element_blank(),
+                panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+                axis.line = element_blank())+#, 
+          #  legend.position='bottomright') + 
+          labs(x='Cycle', y='Avg. Quadrat % Cover')+
+          scale_x_discrete(breaks=c(1,2,3))+
+          scale_y_continuous(limits=c(-10,45),breaks=c(0,20,40),labels=c(0,20,40)))
+} # plots results for each park
+
 # Park-level plot for total invasive quad frequency
 plotQFreqParkTotal<-function(df){ 
   print(ggplot(df, aes(x=cycle2, y=mean, group=park))+ 
@@ -136,6 +152,31 @@ plotQFreqParkGuild<-function(df){
           scale_y_continuous(limits=c(-10,110),breaks=c(0,20,40,60,80,100),
                              labels=c(0,20,40,60,80,100)))
 } # plots results for each park
+
+# Park-level plot for quad frequency by species
+plotQFreqParkSpecies<-function(df){ 
+  print(ggplot(df, aes(x=cycle2, y=mean, group=species))+ 
+          facet_wrap(~park,ncol=5,scales='free')+
+          geom_errorbar(aes(ymin=lower, ymax=upper, x=cycle2,
+                            colour=factor(species)), width=0.1,size=1, na.rm=TRUE)+
+          geom_line(aes(y=mean, x=cycle2,colour=factor(species), linetype=sign), na.rm=TRUE)+
+          geom_point(aes(y=mean, x=cycle2,colour=factor(species), shape=sign), 
+                     size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
+          scale_shape_manual(values=c(21,19))+
+          scale_fill_manual(values=c('white'))+
+          scale_linetype_manual(values=c('dashed','solid'))+ theme_bw()+
+          scale_color_manual(values = colramp)+ 
+          theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
+                plot.margin=unit(c(0.4,0.4,0.5,0.3),'lines'),
+                plot.title=element_text(hjust=0.5, size=12, margin=margin(t=10,b=-15)),
+                panel.background=element_blank(),
+                panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+                axis.line = element_blank())+#, 
+          #  legend.position='bottomright') + 
+          labs(x='Cycle', y='Quadrat % Frequency')+
+          scale_x_discrete(breaks=c(1,2,3))+
+          scale_y_continuous(limits=c(-10,100),breaks=c(0,20,40,60,80,100),labels=c(0,20,40,60,80,100)))
+} 
 
 # Park-level plot for total invasive quad richness
 plotQRichParkTotal<-function(df){ 
@@ -191,7 +232,6 @@ plotQRichParkGuild<-function(df){
                              labels=c(0,1,2)))
 } # plots results for each park
 
-
 # Park level plot for plot frequency total
 plotFreqParkTotal<-function(df){ 
   print(ggplot(df, aes(x=cycle2, y=pfreq, group=park))+ 
@@ -239,7 +279,6 @@ plotFreqParkGuild<-function(df){
       scale_x_discrete(breaks=c(1,2,3))+
       scale_y_continuous(limits=c(-5,105),breaks=c(0,20,40,60,80,100),labels=c(0,20,40,60,80,100)))
 } # plots results for each park
-
 
 # Generalized plotting function for total invasive by metric
 # Plots one metric at a time and requires metric and y-axis name
@@ -295,4 +334,19 @@ plotFreqByGuilds<-function(df, guild_name=NULL, axis_name=NULL){
         panel.grid.major=element_blank(),panel.grid.minor = element_blank())+
       labs(x=NULL, y=axis_name, title=guild_name)+scale_x_continuous(breaks=c(1,2,3)))
 } #
+#------------------------------------
+# Species-level plots for summary
+#------------------------------------
+plotSpeciesTrends<-function(df, species_name=NULL, y_axis=NULL, yrange=c(0,50), col=NULL){
+  df<-df %>% filter(species==species_name) %>% droplevels()
+    print(ggplot(df,aes(x=cycle,y=mean, group=park))+
+            geom_line(aes(x=cycle,y=pfreq,color=col),lwd=1,alpha=0.8,na.rm=T)+
+            geom_errorbar(aes(ymin=lower, ymax=upper, x=cycle,
+                              colour=col), width=0.1,size=1, na.rm=TRUE)+
+            geom_point(aes(x=cycle,y=mean,colour=col),stroke=1,na.rm=T)+
+            theme_bw()
+          )
+}
+
+
 
