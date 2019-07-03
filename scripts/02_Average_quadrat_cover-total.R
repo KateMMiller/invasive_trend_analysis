@@ -32,8 +32,9 @@ analysis.title<-"Average % Invasive Cover Total"
 avgcov.mod<-function(df) {lmer(avg.cover ~ cycle + (1|plot_name),data=df)}
 # random slope had singular fit, so went with simpler rand. intercept
 
-prelim_by_park_AC_T<-df_park %>% mutate(model=map(data,avgcov.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
+prelim_by_park_AC_T<-df_park %>% mutate(model=map(data,avgcov.mod) %>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals)%>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions)%>% set_names(df_park$park))
 
 diag_AC_T<-unnest(prelim_by_park_AC_T, resids, pred)
 res_AC_T<-residPlot(diag_AC_T)
@@ -43,16 +44,16 @@ hist_AC_T<-histPlot(diag_AC_T) # residuals are pretty wonky.
 conv_AC_T<-unlist(prelim_by_park_AC_T[['model']]) %>% map('optinfo') %>% 
   map('conv') %>% map('opt') %>% data.frame() %>% gather() 
 
-conv.tbl_AC_T<-data.frame(cbind(park=levels(diag_AC_T$park),conv.code=conv_AC_T$value))
-conv.tbl_AC_T # all 0s. 
+conv_AC_T # all 0s. 
 
 #-----------------------------------
 ##  ----  model_AC_T  ---- 
 #-----------------------------------
 # Average Invasive % Cover Results
 #-----------------------------------
-by_park_AC_T<-df_park %>% mutate(model=map(data,avgcov.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))#,
+by_park_AC_T<-df_park %>% mutate(model=map(data,avgcov.mod)%>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals)%>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions)%>% set_names(df_park$park))#,
 
 # summarize model output
 results_AC_T<-by_park_AC_T %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
@@ -73,7 +74,8 @@ results_AC_T<-results_AC_T %>% mutate(coef=ifelse(grepl('cycle',term),'Slope','I
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_AC_T<-by_park_AC_T %>% 
-  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))) %>% 
+  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))%>% 
+           set_names(df_park$park)) %>% 
   select(conf.coef)  
 
 coefs_AC_T<-by_park_coefs_AC_T %>% 
@@ -108,7 +110,7 @@ write.csv(results_final_AC_T,'./results/results_avecov-total-coefs_NP.csv', row.
 # for each cycle by guild level 
 by_park_resp_AC_T<-by_park_AC_T %>% 
   mutate(conf.est=map(model,
-    ~case_bootstrap(.x,fn=confFun,B=1000,resample=c(TRUE,FALSE))))
+    ~case_bootstrap(.x,fn=confFun,B=1000,resample=c(TRUE,FALSE))) %>% set_names(df_park$park))
 
 by_park_resp_AC_T<-by_park_resp_AC_T %>% mutate(cols=map(model,~getColNames(.x)), 
   boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
