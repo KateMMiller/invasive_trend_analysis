@@ -42,7 +42,7 @@ ncrn_totinv<-ncrn_totinv %>% mutate(plot.freq=ifelse(num.plot.spp>0,1,0),
     avg.quad.r,avg.cover,quad.freq,qpct.freq,num.plot.spp)
 
 #---ERMN Total Invasives
-ermn_totinv<-read.csv("./data/ERMN/ERMN_total_Invasives20190128.csv")
+ermn_totinv<-read.csv("./data/ERMN/ERMN_total_Invasives20190528.csv")
 names(ermn_totinv)[names(ermn_totinv)=='ave.quad.r']<-'avg.quad.r'
 
 # combine datasets
@@ -70,7 +70,7 @@ comb_totinv2<-rbind(comb_totinv,COLO.c1)
 names(comb_totinv2)
 
 comb_totinv2<-comb_totinv2 %>% arrange(desc(network),plot_name,cycle)
-
+View(comb_totinv2)
 comb_totinv2<-comb_totinv2 %>% mutate(qpct.freq=ifelse(network!='NCRN',qpct.freq*100,qpct.freq))
 
 write.csv(comb_totinv2,'./data/NETN-MIDN-ERMN-NCRN_total_invasives.csv', row.names=F)
@@ -112,7 +112,7 @@ midn_guild<- midn_guild %>% mutate(cycle=case_when(park=='COLO' & cycle==2 ~ 3,
   park!='COLO' & cycle==3 ~ 3)) 
 
 #---ERMN Invasives by guild
-ermn_guild<-read.csv("./data/ERMN/ERMN_Guild_Invasives20190128.csv")
+ermn_guild<-read.csv("./data/ERMN/ERMN_Guild_Invasives20190528.csv")
 names(ermn_guild)[names(ermn_guild)=="ave.quad.r"]<-'avg.quad.r'
 
 #---NCRN Invasives by guild
@@ -175,6 +175,7 @@ write.csv(comb_guild2,'./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv', row.name
 #-----------------
 #---NETN Invasives by species
 netn_species<-read.csv("./data/NETN/NETN_invasive_species_data.csv")
+levels(netn_species$Latin_Name)
 
 netn_species<-netn_species %>% mutate(network='NETN') %>% 
   select(network,Unit_Code:qpct.freq)
@@ -184,15 +185,16 @@ netn_species<-netn_species %>% mutate(network='NETN') %>%
 colnames(netn_species)<-c("network","park","plot_name","cycle",'species',"plot.freq",
                         "avg.cover",'quad.freq','qpct.freq')
 
-netn_species_final<-merge(netn_species,comb_totinv[,c('plot_name','x_coord','y_coord','cycle','lat.rank')], 
+netn_species_final<-merge(netn_species,comb_totinv[,c('plot_name','cycle','lat.rank')], 
                           by=c('plot_name', 'cycle'), all.x=T)
 netn_species_final<-netn_species_final %>% 
-  select(network, park, plot_name, x_coord, y_coord, lat.rank, species, everything())
+  select(network, park, plot_name, lat.rank, species, everything())
 head(netn_species_final)
 
 #---MIDN Invasives by species
 midn_species<-read.csv("./data/MIDN/MIDN_invasive_species_data.csv")
 names(midn_species)
+levels(midn_species$Latin_Name)
 
 midn_species<-midn_species %>% mutate(network='MIDN') %>% 
   select(network,Unit_Code:qpct.freq)
@@ -200,43 +202,66 @@ midn_species<-midn_species %>% mutate(network='MIDN') %>%
 colnames(midn_species)<-c("network","park","plot_name","cycle",'species',"plot.freq",
                           "avg.cover",'quad.freq','qpct.freq')
 
-midn_species_final<-merge(midn_species,comb_totinv[,c('plot_name','x_coord','y_coord','cycle','lat.rank')], 
+midn_species_final<-merge(midn_species,comb_totinv[,c('plot_name','cycle','lat.rank')], 
                           by=c('plot_name', 'cycle'), all.x=T)
 midn_species_final<-midn_species_final %>% 
-  select(network, park, plot_name, x_coord, y_coord, lat.rank, species, everything())
+  select(network, park, plot_name, lat.rank, species, everything())
 head(midn_species_final)
+names(midn_species_final)
 
 #---ERMN Invasives by species
+ermn_species<-read.csv('./data/ERMN/ERMN_Sp_Invasives20190528.csv')
+head(ermn_species)
+
+ermn_species2<-merge(ermn_species,comb_totinv[,c('plot_name','cycle','lat.rank')], by=c('plot_name','cycle'),all.x=T)
+ermn_species2<-ermn_species2 %>% select(network,park,plot_name,lat.rank,Latin_name,cycle,plot.freq,avg.cover,quad.freq,qpct.freq)
+names(ermn_species2)[names(ermn_species2)=="Latin_name"]<-'species'
+
+sppdrop1<-data.frame(table(ermn_species2$species[ermn_species2$plot.freq>0]))
+sppdrop1<-sppdrop1 %>% filter(Freq==0) %>% select(Var1) %>% droplevels()
+sppdrop<-as.character(sppdrop1$Var1)
+sppdrop
+
+# species that weren't on any plots
+ermn_species_final<-ermn_species2 %>% filter(!(species %in% sppdrop)) %>% droplevels()
 
 #---NCRN Invasives by species
-ncrn_species<-read.csv("./data/NCRN/NCRN_species_invasives.csv")
-head(ncrn_species)
+ncrn_species<-read.csv("./data/NCRN/NCRN_species_invasives.csv")[,-1]
+nrow(ncrn_species) #280140
+nrow(unique(ncrn_species)) #56020- each record is duplicated 5 times in the data
 
-ncrn_species<-ncrn_species %>% select("network","park","plot_name","cycle",'species',"plot.freq",
-                                      "avg.cover",'quad.freq','qpct.freq')
+ncrn_species2<-unique(ncrn_species)
+nrow(ncrn_species2) #56020
+View(ncrn_species2)
+head(ncrn_species2)
 
-ncrn_species_final<-merge(ncrn_species,comb_totinv[,c('plot_name','x_coord','y_coord','cycle','lat.rank')], 
+# Combine all datasets
+ncrn_species_final<-merge(ncrn_species2,comb_totinv[,c('plot_name','cycle','lat.rank')], 
                           by=c('plot_name', 'cycle'), all.x=T)
 
 ncrn_species_final<-ncrn_species_final %>% 
-  select(network, park, plot_name, x_coord, y_coord, lat.rank, species, everything())
+  select(network, park, plot_name, lat.rank, species, cycle, plot.freq, avg.cover, quad.freq, qpct.freq)
 
-table(ncrn_species_final$park,ncrn_species_final$species)
+table(complete.cases(ncrn_species_final))
 
-comb_species<-rbind(netn_species_final, midn_species_final, ncrn_species_final)
+names(ncrn_species_final)
+
+comb_species<-rbind(netn_species_final, midn_species_final, ermn_species_final, ncrn_species_final)
+
 table(comb_species$network)
 # Need to add NAs for all plots in C1 for COLO, to make plotting easier
 COLO.c2<-comb_species %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
 # taking COLO C2 and turn it into C1 with NAs
 
 table(comb_species$park,comb_species$cycle)
-
 COLO.c1<-COLO.c2 %>% mutate(cycle=1)
-COLO.c1[,c(7, 9:12)][!is.na(COLO.c1[,c(7, 9:12)])]<-NA
+COLO.c1[,c(5,7:10)][!is.na(COLO.c1[,c(5,7:10)])]<-NA
 comb_species2<-rbind(comb_species,COLO.c1) 
 
-#comb_species2<-comb_species2 %>% mutate(qpct.freq=ifelse(network!='NCRN',qpct.freq*100,qpct.freq))
+comb_species3<-comb_species2 %>% 
+  filter(!(network=='MIDN' & species=='Elaeagnus angustifolia')& species!='Elaeagnus umbellata' & species!='noinvspp') %>% droplevels()
 
-comb_species2<-comb_species2 %>% arrange(desc(network),plot_name,cycle) 
+comb_species3<-comb_species3 %>% arrange(desc(network),plot_name,cycle) 
 
-write.csv(comb_species2,'./data/NETN-MIDN-NCRN_species_invasives.csv', row.names=F)
+write.csv(comb_species3,'./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv', row.names=F)
+
