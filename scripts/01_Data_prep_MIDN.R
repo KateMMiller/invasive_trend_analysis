@@ -11,10 +11,9 @@ head(invlist)
 # NOTE: These summaries are only include exotic species that were on the indicator list
 # since 2007 to ensure that comparisons across cycles are consistent. 
 #++++++++++++++++++++++++++++++++++
-spp_to_remove_from_trends<-c("Ligustrum", "Ligustrum vulgare","Ligustrum obtusifolium","Ligustrum ovalifolium",
-                             "Ligustrum sinense", "Ligustrum spp.", "Oplismenus hirtellus ssp. undulatifolius")
+
 # Exotic Species that were added to indicator list after 2007.
-invlist<-invlist %>% filter(!Latin_Name %in% spp_to_remove_from_trends) # removes species added later
+invlist_trends<-invlist %>% filter(MIDN == 1) %>% droplevels() # removes species added later
 
 #----------------------------------
 # Function to remove PETE-185 and COLO-380
@@ -131,11 +130,11 @@ head(topspp)
 #---------------------------
 # Need to set guilds to only count a species once
 
-plants<-plants %>% mutate(Tree=ifelse(Tree==TRUE & Shrub==TRUE, FALSE, Tree)) %>% filter(Latin_Name %in% invlist$Latin_Name)
+plants<-plants %>% mutate(Tree=ifelse(Tree==TRUE & Shrub==TRUE, FALSE, Tree)) %>% filter(Latin_Name %in% invlist_trends$Latin_Name)
 
 # Plot Frequency and Plot Richness
 prespplist1<-makeSppList('all',from=2007, to=2018)
-prespplist2<-prespplist1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels()
+prespplist2<-prespplist1 %>% filter(Latin_Name %in% invlist_trends$Latin_Name) %>% droplevels()
 prespplist3<-merge(park.plots,prespplist2[,c('Event_ID','Latin_Name','Tree','Shrub','Herbaceous','Graminoid','Exotic',
                                              'avg.quad.cover','avg.quad.freq')], by='Event_ID',all.x=T)
 prespplist3$Latin_Name[is.na(prespplist3$Latin_Name)]<-'noinvspp'
@@ -174,7 +173,7 @@ numPlotSpp<-spplist3 %>% select(Event_ID,Tree:Graminoid,numPlotSpp) %>%
 quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',speciesType='all') 
 quad1<-rmRejected(quad)
 
-quad2<-quad1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels() %>% 
+quad2<-quad1 %>% filter(Latin_Name %in% invlist_trends$Latin_Name) %>% droplevels() %>% 
   select(Event_ID, A2:CC,Latin_Name:Shrub,Herbaceous,Graminoid,Exotic,avg.cover,avg.freq )
 
 quad3<-merge(park.plots, quad2, by='Event_ID',all.x=T)
@@ -216,7 +215,7 @@ head(quad.r2)
 quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',speciesType='all') 
 quad1<-rmRejected(quad)
 
-quad2<-quad1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels() %>% 
+quad2<-quad1 %>% filter(Latin_Name %in% invlist_trends$Latin_Name) %>% droplevels() %>% 
   select(Event_ID,Tree,Shrub,Herbaceous,Graminoid, avg.cover, A2:CC)
 
 quad3<-merge(park.plots,quad2, by='Event_ID',all.x=T)
@@ -273,7 +272,7 @@ write.csv(comb5,'./data/MIDN/MIDN_invasive_guild_data.csv',row.names=F)
 #-------------------------------------
 # Plot Frequency and Plot Richness of all invasives
 prespplist1<-makeSppList('all',from=2007, to=2018)
-prespplist2<-prespplist1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels() %>% 
+prespplist2<-prespplist1 %>% filter(Latin_Name %in% invlist_trends$Latin_Name) %>% droplevels() %>% 
   select(Event_ID, Latin_Name, tree.stems:addspp.present)
 
 prespplist3<-merge(park.plots,prespplist2, by='Event_ID',all.x=T)
@@ -303,7 +302,7 @@ quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',specie
 quad1<-rmRejected(quad)
 names(quad1)
 
-quad2<-quad1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels() %>% 
+quad2<-quad1 %>% filter(Latin_Name %in% invlist_trends$Latin_Name) %>% droplevels() %>% 
   select(Event_ID, numQuadrats, A2:CC,Latin_Name,avg.cover,avg.freq )
 
 quad3<-merge(park.plots, quad2, by='Event_ID',all.x=T)
