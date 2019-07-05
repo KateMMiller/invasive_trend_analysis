@@ -1,17 +1,10 @@
 #-----------------------------------
 # Code for Park-level Invasive Trend Analysis
 #-----------------------------------
-## @knitr codesetup
-
-library(knitr)
 library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for glmer with Poisson
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
-library(sjstats) # for overdisp
-#library(lmerTest) # for p-values based on Satterthwaite-approximated degrees of freedom 
-# I'm not using p-values anymore- using empiracle CIs instead.
-# attaching lmerTest automatically incorporates this test in the lmer output.
 library(prediction)
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
