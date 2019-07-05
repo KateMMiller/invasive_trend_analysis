@@ -224,6 +224,9 @@ ermn_species2<-merge(ermn_species,comb_totinv[,c('plot_name','cycle','lat.rank')
 ermn_species2<-ermn_species2 %>% select(network,park,plot_name,lat.rank,Latin_name,cycle,plot.freq,avg.cover,quad.freq,qpct.freq)
 names(ermn_species2)[names(ermn_species2)=="Latin_name"]<-'species'
 
+invspp<-invlist$Latin_Name
+ermn_unmatch<-ermn_species2 %>% filter(!(species %in% invspp))
+sort(unique(ermn_unmatch$species)) #all species accounted for now.
 ermn_species3<- merge(ermn_species2, invlist, by.x='species',by.y="Latin_Name",all.x=T)
 
 ermn_species_final<- ermn_species3 %>% mutate(species=ifelse(Accepted=='Y', paste0(species), paste0(Accepted.Name))) %>% 
@@ -233,6 +236,9 @@ ermn_species_final<- ermn_species3 %>% mutate(species=ifelse(Accepted=='Y', past
 ncrn_species<-read.csv("./data/NCRN/NCRN_species_invasives.csv")[,-1]
 nrow(ncrn_species) #280140
 nrow(unique(ncrn_species)) #56020- each record is duplicated 5 times in the data
+
+ncrn_unmatch<-ncrn_species2 %>% filter(!(species %in% invspp))
+sort(unique(ncrn_unmatch$species)) #all species accounted for.
 
 ncrn_species2<-unique(ncrn_species)
 nrow(ncrn_species2) #56020
