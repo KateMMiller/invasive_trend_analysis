@@ -3,7 +3,6 @@
 #-----------------------------------
 ## ---- codesetup_QF_G ---- 
 #-----------------------------------
-#library(knitr)
 library(tidyverse) # attaches most of the important packages in the tidyverse
 library(lme4) # for lmer
 library(modelr) #for handling multiple models in tidyverse
@@ -23,8 +22,8 @@ df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,guild)
 
 # only include guilds with at least 10% of plots with that guild
-df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
-  filter((park!='ACAD'& nonzero>0.1)|(park=='ACAD'& guild=='Shrub')) %>% 
+df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(),sumfreq=sum(qpct.freq)) %>% 
+  filter((park!='ACAD'& nonzero>0.1 & sumfreq>0)|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild)
 
 df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & !(park=='SAHI') & (park!='WOTR')) %>% droplevels()

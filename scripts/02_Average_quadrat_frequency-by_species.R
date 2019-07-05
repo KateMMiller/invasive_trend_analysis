@@ -18,16 +18,21 @@ source('./scripts/functions_for_ANALYSIS.R') # File containing functions
 ## ---- readdata_QF_S ----
 #-----------------------------
 # Read in data.frame without guids in first two columns
-df<-read.csv("./data/NETN-MIDN-NCRN_species_invasives.csv")#[,-c(1,2)]
+df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,species) %>% filter(species!='noinvspp')
 head(df)
-
+View(df1)
 # only include species with at least 10% of plots with that guild
-df1<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
-  filter((park!='ACAD'& nonzero>0.1)|(park=='ACAD'& species=='Rhamnus frangula')) %>% 
+df2<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumfreq=sum(qpct.freq)) %>% 
+  filter((park!='ACAD'& nonzero>0.1 & sumfreq>0)|(park=='ACAD'& species=='Rhamnus frangula')) %>% 
   filter(park!='SAHI' & park!='WOTR') %>% 
   droplevels() %>% ungroup(park,species)
-table(df1$species,df1$park)
+
+df1<-df2 %>% group_by(park, species) %>% mutate(qpres.sum=sum(quad.freq)/(12*n())) %>% 
+  filter(ifelse(park=='MONO', qpres.sum>0.02, qpres.sum>0)) #%>% mutate(nlev=length(unique(species)))
+  # There are only 18 plots in MONO, and using rules above allowed too many species for the number of df
+  # so removed the species that were the least frequent (i.e. species only occuring in the same one plot all 3 cycles)
+
 parkspp<-df1 %>% select(park,species) %>% unique()
 
 df_park<-df1 %>% group_by(park) %>% nest()
@@ -50,8 +55,8 @@ qfreq.mod<-function(df) {
 } # random slope had singular fit, so went with simpler rand. intercept
 
 prelim_by_park_QF_S<-df_park %>% mutate(model=map(data,qfreq.mod) %>% set_names(df_park$park),
-                  resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
-                  pred=map2(data,model,add_predictions) %>% set_names(df_park$park))
+                                        resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+                                        pred=map2(data,model,add_predictions) %>% set_names(df_park$park))
 
 diag_QF_S<-unnest(prelim_by_park_QF_S, resids, pred)
 res_QF_S<-residPlot(diag_QF_S)
@@ -69,8 +74,8 @@ conv_QF_S # all 0s.
 # Average Invasive % Cover Results
 #-----------------------------------
 by_park_QF_S<-df_park %>% mutate(model=map(data,qfreq.mod) %>% set_names(df_park$park),
-    resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
-    pred=map2(data,model,add_predictions) %>% set_names(df_park$park))
+                                 resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+                                 pred=map2(data,model,add_predictions) %>% set_names(df_park$park))
 
 # summarize model output
 results_QF_S<-by_park_QF_S %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
@@ -163,16 +168,16 @@ write.csv(results_final_QF_S,'./results/results_qfreq-by_species-coefs_NP.csv', 
 # for each cycle by guild level 
 by_park_resp_QF_S<-by_park_QF_S %>% 
   mutate(conf.est=map(model,
-  ~case_bootstrap(.x, fn=confFunSpp, B=1000, resample=c(TRUE,FALSE))) %>% set_names(df_park$park))
+                      ~case_bootstrap(.x, fn=confFunSpp, B=1000, resample=c(TRUE,FALSE))) %>% set_names(df_park$park))
 
 by_park_resp_QF_S<-by_park_resp_QF_S %>% mutate(cols=map(model,~getColNamesSpp(.x)), 
-  boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
+                                                boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
 
 resp_QF_S<-by_park_resp_QF_S %>% mutate(boot.ci=map(boot.t,~bootCI(.x))) %>% 
   select(boot.ci) %>% unnest() # Calculate 95% CIs from bootstrap output
 
 resp_QF_S<-resp_QF_S %>% mutate(park=as.factor(park_names2),
-  type=rep(c('lower','upper'),times=length(levels(park)))) %>% 
+                                type=rep(c('lower','upper'),times=length(levels(park)))) %>% 
   select(park,type,everything()) 
 # puts labels on boot output
 
@@ -188,7 +193,7 @@ labelsCI_QF_S<-df1 %>% na.omit() %>% group_by(park,cycle,species) %>%
   summarise(numplots=n(),lat.rank=first(lat.rank)) %>% droplevels() #na.omit removes NCRN shrubs and COLO C1
 
 respCIs_QF_S<-data.frame(labelsCI_QF_S[,c('cycle','species','numplots','lat.rank')],
-  resp2_QF_S,resp_mean_QF_S) %>% select(park,everything())
+                         resp2_QF_S,resp_mean_QF_S) %>% select(park,everything())
 
 table(respCIs_QF_S$park,respCIs_QF_S$cycle)
 
@@ -200,7 +205,7 @@ respCIs2_QF_S<-respCIs_QF_S %>%
 slopes_QF_S<-results_final_QF_S %>% filter(coef=='Slope') %>% droplevels()
 
 respCIs_final_QF_S<-merge(respCIs2_QF_S,
-  slopes_QF_S[,c('park','species','sign')],by=c('park','species'),all.x=T)
+                          slopes_QF_S[,c('park','species','sign')],by=c('park','species'),all.x=T)
 
 respCIs_final_QF_S<-respCIs_final_QF_S %>% 
   mutate(sign=as.factor(sign),speciessign=as.factor(paste(species,sign,sep='_')),species=as.factor(species),

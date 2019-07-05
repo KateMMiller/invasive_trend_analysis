@@ -43,8 +43,9 @@ qrich.mod<-function(df) {
   } else {lmer(avg.quad.r~cycle+(1|plot_name),data=df)} 
   } # random slope had singular fit, so went with simpler rand. intercept
 
-prelim_by_park_QR_G<-df_park %>% mutate(model=map(data,qrich.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
+prelim_by_park_QR_G<-df_park %>% mutate(model=map(data,qrich.mod) %>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions) %>% set_names(df_park$park))
 
 diag_QR_G<-unnest(prelim_by_park_QR_G, resids, pred)
 res_QR_G<-residPlot(diag_QR_G)
@@ -54,16 +55,16 @@ hist_QR_G<-histPlot(diag_QR_G)
 conv_QR_G<-unlist(prelim_by_park_QR_G[['model']]) %>% map('optinfo') %>% 
   map('conv') %>% map('opt') %>% data.frame() %>% gather() 
 
-conv.tbl_QR_G<-data.frame(cbind(park=levels(diag_QR_G$park),conv.code=conv_QR_G$value))
-conv.tbl_QR_G # all 0s. 
+conv_QR_G # all 0s. 
 
 #-----------------------------------
 ##  ----  model_QR_G  ---- 
 #-----------------------------------
 # Quadrat Richness Results
 #-----------------------------------
-by_park_QR_G<-df_park %>% mutate(model=map(data,qrich.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))#,
+by_park_QR_G<-df_park %>% mutate(model=map(data,qrich.mod) %>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions) %>% set_names(df_park$park))#,
 
 # summarize model output
 results_QR_G<-by_park_QR_G %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
@@ -98,7 +99,8 @@ results_QR_G<-results_QR_G %>% mutate(guild=guild_labels2_QR_G$guild2,
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_QR_G<-by_park_QR_G %>% 
-  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))) %>% 
+  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, 
+                                             resample=c(TRUE,FALSE))) %>% set_names(df_park$park)) %>% 
   select(conf.coef)   
 
 coefs_QR_G<-by_park_coefs_QR_G %>% 
@@ -150,7 +152,7 @@ write.csv(results_final_QR_G,'./results/results_qrich-by_guild-coefs_NP.csv', ro
 # for each cycle by guild level 
 by_park_resp_QR_G<-by_park_QR_G %>% 
   mutate(conf.est=map(model,
-    ~case_bootstrap(.x, fn=confFun, B=1000, resample=c(TRUE,FALSE))))
+    ~case_bootstrap(.x, fn=confFun, B=1000, resample=c(TRUE,FALSE))) %>% set_names(df_park$park))
 
 by_park_resp_QR_G<-by_park_resp_QR_G %>% mutate(cols=map(model,~getColNames(.x)), 
   boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output
