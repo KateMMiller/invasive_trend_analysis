@@ -44,7 +44,7 @@ plotCoverParkGuild<-function(df){
         colour=factor(guild)), width=0.1,size=1, na.rm=TRUE)+
       geom_line(aes(y=mean, x=cycle2,colour=factor(guild), linetype=sign), na.rm=TRUE)+
       geom_point(aes(y=mean, x=cycle2,colour=factor(guild), shape=sign), 
-        size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
+        size=1.5, stroke=1.5, fill='white', na.rm=TRUE)+
       scale_shape_manual(values=c(21,19))+
       scale_fill_manual(values=c('white'))+
       scale_linetype_manual(values=c('dashed','solid'))+
@@ -74,29 +74,61 @@ plotCoverGuild<-function(df){
       labs(x='Cycle', y='Avg. Quadrat % Cover')+scale_x_continuous(breaks=c(1,2,3)))
 } #
 
+# Species by park plots for invasive cover trends
+coefPlot<- function(df){
+  spplabs<-data.frame(table(df$species))
+  spplabs<-spplabs %>% filter(Freq>4) %>% droplevels()
+  spplabs$axistick<-lag(spplabs$Freq,k=1)
+  spplabs[1,3]<-0
+  spplabs$axisticks<-cumsum(spplabs$axistick)+1
+  spplabs<-spplabs[,c('Var1','axisticks')]
+  colnames(spplabs)<-c('species', 'axisticks')
+  df2<-unique(merge(df, spplabs, by='species',all.y=T))
+  df2<-df2 %>% arrange(species,park) %>% droplevels()
+  df2$axis<-as.numeric(row.names(df2))
+  df2$sign<-as.factor(df2$sign)
+  dfsign<-df2 %>% mutate(park=ifelse(sign==1,paste(park),NA))
+  #colrkeep=distinctColorPalette(k=nlevels(df2$species))
+  print(ggplot(df2, aes(x=axis, y=estimate, colour=species, fill=sign, labels=df2$species)) +
+          geom_hline(yintercept=0, lwd=1, color='DimGrey') +
+          geom_errorbar(aes(ymin=lower, ymax=upper, colour=species), width=1.5, size=1, show.legend = F)+
+          geom_point(aes(fill=sign), stroke=1, size=2, colour='black', shape=21)+ 
+          scale_fill_manual(values=c('white','DimGrey'), guide=F)+
+          scale_color_manual(values=colrkeep)+  
+          theme_bw()  + coord_flip() +  ylab('Slope: Average % Cover Change')+ ylim(-10,22)+
+          scale_x_reverse(name='Species',breaks=unique(df2$axisticks), labels=levels(df2$species))+ 
+          #geom_label_repel(labels=spplabs$species, box.padding=0.4)+
+          #geom_dl(aes(label=park), method=list(dl.trans(x=x+0.25),dl.combine("last.points"), cex=0.7, colour='black'))+
+          geom_text(data=dfsign,aes(label=park, y=ifelse(upper>0,upper+1.5,lower-0.25)),#,direction="y",nudge_x=-0.1,
+                    vjust=0.5, hjust=1, colour='black', cex=3 )
+  )
+}
+
 # Park-level plot for invasive cover by species
-plotCoverParkSpecies<-function(df){ 
-  print(ggplot(df, aes(x=cycle2, y=mean, group=species))+ 
-          facet_wrap(~park,ncol=5,scales='free')+
+plotCoverParkSpecies<-function(df, parkname, yrange=c(-10,40), yaxis=NULL){ 
+  df2<-df %>% filter(park==parkname) %>% droplevels()
+  print(ggplot(df2, aes(x=cycle2, y=mean, group=species, shape=species, fill=species))+ 
+          #facet_wrap(~park,ncol=5,scales='free')+
           geom_errorbar(aes(ymin=lower, ymax=upper, x=cycle2,
-                            colour=factor(species)), width=0.1,size=1, na.rm=TRUE)+
-          geom_line(aes(y=mean, x=cycle2,colour=factor(species), linetype=sign), na.rm=TRUE)+
-          geom_point(aes(y=mean, x=cycle2,colour=factor(species), shape=sign), 
-                     size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
-          scale_shape_manual(values=c(21,19))+
-          scale_fill_manual(values=c('white'))+
-          scale_linetype_manual(values=c('dashed','solid'))+ theme_bw()+
-          scale_color_manual(values = colramp)+ 
+                            colour=species), width=0.1, lwd=1)+
+          geom_line(aes(y=mean, x=cycle2, colour=species), lwd=1)+
+          geom_point(aes(y=mean, x=cycle2, fill=species, shape=species, size=species), 
+                     stroke=1, size=2,colour='black')+
+          scale_shape_manual(values = symb)+
+          #scale_size_manual(values=c(3,3,3,3,2.5,3,3,3,2.5,3,3))+
+          scale_fill_manual(values = colramp)+ 
+          scale_color_manual(values = colramp)+
+          theme_bw()+
           theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
-                plot.margin=unit(c(0.4,0.4,0.5,0.3),'lines'),
+                plot.margin=unit(c(0.4,1,0.5,1),'lines'),
                 plot.title=element_text(hjust=0.5, size=12, margin=margin(t=10,b=-15)),
                 panel.background=element_blank(),
                 panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
-                axis.line = element_blank())+#, 
-          #  legend.position='bottomright') + 
-          labs(x='Cycle', y='Avg. Quadrat % Cover')+
+                axis.line = element_blank(), 
+                legend.position='none') + 
+          labs(x='Cycle', y=yaxis,title=parkname)+
           scale_x_discrete(breaks=c(1,2,3))+
-          scale_y_continuous(limits=c(-10,45),breaks=c(0,20,40),labels=c(0,20,40)))
+          ylim(yrange))
 } # plots results for each park
 
 # Park-level plot for total invasive quad frequency
