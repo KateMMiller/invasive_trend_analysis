@@ -3,6 +3,8 @@
 #-----------------------------------------------
 library(tidyverse)
 library(colorRamps)
+library(cowplot)
+library(directlabels)
 source('./scripts/functions_for_PLOTTING.R')
 ppi<-300
 
@@ -128,7 +130,7 @@ plot_qrich_g<-plotQRichParkGuild(qrich_guild)
 #dev.off()
 
 #----------------------------------
-# Plot frequency by guild
+# Plot frequency by Guild
 #----------------------------------
 pfreq_guild_coefs<-read.csv('./results/results_pfreq-by_guild-coefs.csv')
 pfreq_guild_slopes<-pfreq_guild_coefs %>% filter(coef=='Slope') %>% droplevels()
@@ -158,6 +160,18 @@ plot_pfreq_g<-plotFreqParkGuild(pfreq_guild_comb)
 #-----------------------------------------------
 # Average % Cover - by Species
 #-----------------------------------------------
+AC_S_coef<-read.csv("./results/results_avecov-by_species-coefs_NP.csv")
+avgcov_species<-read.csv("./results/results_avecov-by_species-response_NP.csv")
+
+AC_S_slope<-AC_S_coef %>% left_join(.,avgcov_species[,c('park','lat.rank')], by="park") %>% 
+  filter(coef=='Slope') %>% droplevels %>% unique() %>% arrange(species,park)
+
+AC_S_slope$sign<-as.factor(AC_S_slope$sign)
+
+#AC_S_slope$park<-reorder(AC_S_slope$park,-AC_S_slope$lat.rank)
+View(AC_S_slope)
+
+# Park-level plots that are combined via cowplot
 avgcov_species<-read.csv("./results/results_avecov-by_species-response_NP.csv")
 
 avgcov_species<- avgcov_species %>% arrange(lat.rank) %>% 
@@ -165,55 +179,68 @@ avgcov_species<- avgcov_species %>% arrange(lat.rank) %>%
 
 avgcov_species$park<-reorder(avgcov_species$park,-avgcov_species$lat.rank)
 
+head(avgcov_species)
+
+
 avgcov_species_sign<-avgcov_species %>% filter(sign==1) %>% droplevels()
+nlevels(avgcov_species_sign$species)
 
+colramp=primary.colors(nlevels(avgcov_species_sign$species),steps=3,no.white = T)
+colramp<-c('#009933', '#ff9900', '#00ccff', '#cc0000', '#00ffff', '#ffbf00', '#7733ff',
+           '#ff99ff', '#33cc33', '#00ace6', '#ff0080',"#e6e600", "#8080FF", "#FF80FF", "#80FFFF","#0000FF")
+names(colramp)<-as.character(levels(avgcov_species_sign$species))
+colramp
 
-plotSpeciesTrends<-function(df, species_name=NULL, y_axis=NULL, yrange=c(0,10)){
-  parkcols1<-data.frame(park=levels(df$park),
-             parkcolor=primary.colors(nlevels(df$park), steps=3, no.white = TRUE))
-  
-  df1<-df %>% filter(species==species_name) %>% arrange(park) %>% droplevels()
-  parks<-levels(df1$park)
-  
-  parkcols2<-parkcols1 %>% filter(park %in% parks) %>% arrange(park) %>% droplevels()
-  print(parkcols2)
-  
-  parkcolors<-as.character(parkcols2[,2])
+symb<-c(21,23,24,25,21,23,24,25,21,23,24,21,23,24,25,21)
+names(symb)<-names(colramp)
 
-  print(ggplot(df1,aes(x=cycle2,y=mean, group=park, colour=park))+
-          geom_line(aes(x=cycle2,y=mean),lwd=1,alpha=0.8,na.rm=T)+
-          geom_errorbar(aes(ymin=lower, ymax=upper, x=cycle2), width=0.1,size=1, na.rm=TRUE)+
-          geom_point(aes(x=cycle,y=mean),stroke=1,na.rm=T)+
-          theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
-                plot.margin=unit(c(0.4,0.4,0.5,0.3),'lines'),
-                plot.title=element_text(hjust=0.5, size=12, margin=margin(t=10,b=5)),
-                panel.background=element_rect(fill='white',color='black'),
-                panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
-                axis.line = element_blank(), 
-                legend.position='none') + 
-          scale_x_discrete(breaks=c(1,2,3))+ylim(yrange)+
-          scale_colour_manual(values=c(parkcolors))+
-          labs(x='Cycle', y=y_axis, title=species_name)+
-          geom_dl(aes(label=park), method=list(dl.trans(x=x+0.25),dl.combine("last.points"), cex=0.8, colour='black'))
-          )
-  }
+levels(avgcov_species_sign$park)
+table(avgcov_species_sign$species,avgcov_species_sign$park)
 
+SARA<-plotCoverParkSpecies(avgcov_species_sign, park='SARA', yrange=c(-1,25))
+MIMA<-plotCoverParkSpecies(avgcov_species_sign, park='MIMA', yrange=c(-1,5))
+ROVA<-plotCoverParkSpecies(avgcov_species_sign, park='ROVA', yrange=c(-1,5))
+WEFA<-plotCoverParkSpecies(avgcov_species_sign, park='WEFA', yrange=c(-1,5))
+MORR<-plotCoverParkSpecies(avgcov_species_sign, park='MORR', yrange=c(-1,40))
+HOFU<-plotCoverParkSpecies(avgcov_species_sign, park='HOFU', yrange=c(-1,20))
+VAFO<-plotCoverParkSpecies(avgcov_species_sign, park='VAFO', yrange=c(-1,40))
+GETT<-plotCoverParkSpecies(avgcov_species_sign, park='GETT', yrange=c(-1,20))
+CATO<-plotCoverParkSpecies(avgcov_species_sign, park='CATO', yrange=c(-1,10))
+ANTI<-plotCoverParkSpecies(avgcov_species_sign, park='ANTI', yrange=c(-7,40))
+MONO<-plotCoverParkSpecies(avgcov_species_sign, park='MONO', yrange=c(-5,50))
+CHOH<-plotCoverParkSpecies(avgcov_species_sign, park='CHOH', yrange=c(-1,30))
+HAFE<-plotCoverParkSpecies(avgcov_species_sign, park='HAFE', yrange=c(-1,20))
+ROCR<-plotCoverParkSpecies(avgcov_species_sign, park='ROCR', yrange=c(-1,30))
+GWMP<-plotCoverParkSpecies(avgcov_species_sign, park='GWMP', yrange=c(-1,10))
+MANA<-plotCoverParkSpecies(avgcov_species_sign, park='MANA', yrange=c(-1,40))
+PRWI<-plotCoverParkSpecies(avgcov_species_sign, park='PRWI', yrange=c(-1,5))
+THST<-plotCoverParkSpecies(avgcov_species_sign, park='THST', yrange=c(-1,30))
+GEWA<-plotCoverParkSpecies(avgcov_species_sign, park='GEWA', yrange=c(-5,20))
+RICH<-plotCoverParkSpecies(avgcov_species_sign, park='RICH', yrange=c(-1,20))
+APCO<-plotCoverParkSpecies(avgcov_species_sign, park='APCO', yrange=c(-1,20))
+PETE<-plotCoverParkSpecies(avgcov_species_sign, park='PETE', yrange=c(-1,15))
 
-levels(avgcov_species_sign$species) 
+parkgrid<-plot_grid(SARA, MIMA, ROVA, WEFA, MORR, HOFU, VAFO, GETT, CATO, ANTI, MONO, CHOH, 
+                    HAFE, ROCR, GWMP, MANA, PRWI, THST, GEWA, RICH, APCO, PETE, ncol=5)
+parkgrid
 
+spp.leg<-function(df){ 
+  ggplot(df, aes(x=cycle2, y=mean, group=species, shape=species, fill=species))+
+    geom_line(aes(y=mean, x=cycle2, colour=species), lwd=1)+
+    geom_point(aes(y=mean, x=cycle2, fill=species, shape=species), stroke=1, size=2,colour='black')+
+    scale_shape_manual(values= symb)+
+    scale_fill_manual(values = colramp)+ 
+    scale_color_manual(values = colramp)+
+    guides(shape=guide_legend(override.aes=list(size=2)))
+}
+AC_S_leg<-spp.leg(df=avgcov_species_sign)
 
-ACEPLA<-plotSpeciesTrends(avgcov_species_sign, species_name='Acer platanoides',
-                                 y_axis='Avg. Quadrat % Cover',yrange=c(-1,10))
-
-AILALT<-plotSpeciesTrends(avgcov_species_sign, species_name='Ailanthus altissima',
-                           y_axis='Avg. Quadrat % Cover',yrange=c(-1,10))
-
-ALLPET<-plotSpeciesTrends(avgcov_species_sign, species_name='Alliaria petiolata',
-                          y_axis='Avg. Quadrat % Cover',yrange=c(-1,5))
-
-BERTHU<-plotSpeciesTrends(avgcov_species_sign, species_name='Berberis thunbergii',
-                          y_axis='Avg. Quadrat % Cover',yrange=c(-1,40))
-
+leg.r<-cowplot::get_legend(AC_S_leg+theme(legend.direction='horizontal',legend.justification='left',
+                                          legend.box.just='bottom', legend.key.size=unit(0.5,'in'), 
+                                          legend.title=element_blank(), 
+                                          legend.text=element_text(size=12, face='italic')))
+finalgrid<-plot_grid(parkgrid,leg.r,rel_heights=c(3,0.5),nrow=2)  
+finalgrid
 
 #tiff(file='./results/figures/avgcov_species_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
 #plot_avgcov_g
@@ -222,64 +249,76 @@ BERTHU<-plotSpeciesTrends(avgcov_species_sign, species_name='Berberis thunbergii
 #-----------------------------------------------
 # Quadrat % Frequency - by Species
 #-----------------------------------------------
-qfreq_species<-read.csv("./results/results_qfreq-by_species-response_NP.csv")
-head(qfreq_species)
+qfreq_species<-read.csv("./results/results_qfreq-by_species-response_NP100.csv")
 
 qfreq_species<- qfreq_species %>% arrange(lat.rank) %>% 
   mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
 
-
 qfreq_species$park<-reorder(qfreq_species$park,-qfreq_species$lat.rank)
-names(qfreq_species)
 
-plot_qfreq_g<-plotQFreqParkSpecies(qfreq_species)
+qfreq_species_sign<-qfreq_species %>% filter(sign==1) %>% droplevels()
+levels(qfreq_species_sign$species)
 
-nlevels(qfreq_species$species)
+#colramp=primary.colors(nlevels(qfreq_species_sign$species),steps=3,no.white = T)
+colramp<-c('#009933', '#ff9900', '#00ccff', '#cc0000', "#b45a41", '#00ffff', '#ffbf00', '#7733ff',
+           '#ff99ff', '#33cc33', '#00ace6', '#ff0080',"#e6e600", "#8080FF", "#FF80FF", "#80FFFF","#0000FF")
+names(colramp)<-c("Acer platanoides","Ailanthus altissima","Alliaria petiolata","Berberis thunbergii", "Cardamine impatiens",
+                  "Celastrus orbiculatus", "Elaeagnus", "Euonymus", "Euonymus fortunei", "Hedera helix", "Lonicera - Exotic",
+                  "Lonicera japonica", "Microstegium vimineum", "Morus alba", "Robinia pseudoacacia",
+                  "Rosa multiflora","Rubus phoenicolasius")
 
-plotQFreqParkSpecies<-function(df){ 
-  print(ggplot(df, aes(x=cycle2, y=mean, group=species))+ 
-          facet_wrap(~park,ncol=5,scales='free')+
-          geom_errorbar(aes(ymin=lower, ymax=upper, x=cycle2,
-                            colour=factor(species)), width=0.1,size=1, na.rm=TRUE)+
-          geom_line(aes(y=mean, x=cycle2,colour=factor(species), linetype=sign), na.rm=TRUE)+
-          geom_point(aes(y=mean, x=cycle2,colour=factor(species), shape=sign), 
-                     size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
-          scale_shape_manual(values=c(21,19))+
-          scale_fill_manual(values=c('white'))+
-          scale_linetype_manual(values=c('dashed','solid'))+ theme_bw()+
-          scale_color_manual(values = colramp)+ 
-          theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
-                plot.margin=unit(c(0.4,0.4,0.5,0.3),'lines'),
-                plot.title=element_text(hjust=0.5, size=12, margin=margin(t=10,b=-15)),
-                panel.background=element_blank(),
-                panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
-                axis.line = element_blank())+#, 
-          #  legend.position='bottomright') + 
-          labs(x='Cycle', y='Quadrat % Frequency')+
-          scale_x_discrete(breaks=c(1,2,3))+
-          scale_y_continuous(limits=c(-10,100),breaks=c(0,20,40,60,80,100),labels=c(0,20,40,60,80,100)))
-} 
+symb<-c(21,23,24,25,23,21,23,24,25,21,23,24,21,23,24,25,21)
+names(symb)<-names(colramp)
 
+levels(qfreq_species_sign$park)
 
-#tiff(file='./results/figures/qfreq_species_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
-#plot_qfreq_g
-#dev.off()
+SARA<-plotCoverParkSpecies(qfreq_species_sign, park='SARA', yrange=c(-7,50), yaxis='Quad % Freq.')
+MIMA<-plotCoverParkSpecies(qfreq_species_sign, park='MIMA', yrange=c(-7,50))
+ROVA<-plotCoverParkSpecies(qfreq_species_sign, park='ROVA', yrange=c(-7,50))
+WEFA<-plotCoverParkSpecies(qfreq_species_sign, park='WEFA', yrange=c(-7,50))
+MORR<-plotCoverParkSpecies(qfreq_species_sign, park='MORR', yrange=c(-7,80))
+HOFU<-plotCoverParkSpecies(qfreq_species_sign, park='HOFU', yrange=c(-7,50), yaxis='Quad % Freq.')
+VAFO<-plotCoverParkSpecies(qfreq_species_sign, park='VAFO', yrange=c(-7,50))
+GETT<-plotCoverParkSpecies(qfreq_species_sign, park='GETT', yrange=c(-7,80))
+CATO<-plotCoverParkSpecies(qfreq_species_sign, park='CATO', yrange=c(-7,50))
+ANTI<-plotCoverParkSpecies(qfreq_species_sign, park='ANTI', yrange=c(-7,80))
+MONO<-plotCoverParkSpecies(qfreq_species_sign, park='MONO', yrange=c(-7,50), yaxis='Quad % Freq.')
+CHOH<-plotCoverParkSpecies(qfreq_species_sign, park='CHOH', yrange=c(-7,80))
+HAFE<-plotCoverParkSpecies(qfreq_species_sign, park='HAFE', yrange=c(-7,50))
+ROCR<-plotCoverParkSpecies(qfreq_species_sign, park='ROCR', yrange=c(-7,50))
+GWMP<-plotCoverParkSpecies(qfreq_species_sign, park='GWMP', yrange=c(-7,50))
+NACE<-plotCoverParkSpecies(qfreq_species_sign, park='NACE', yrange=c(-7,50), yaxis='Quad % Freq.')
+MANA<-plotCoverParkSpecies(qfreq_species_sign, park='MANA', yrange=c(-7,80))
+PRWI<-plotCoverParkSpecies(qfreq_species_sign, park='PRWI', yrange=c(-1,10))
+THST<-plotCoverParkSpecies(qfreq_species_sign, park='THST', yrange=c(-7,105))
+GEWA<-plotCoverParkSpecies(qfreq_species_sign, park='GEWA', yrange=c(-7,50))
+RICH<-plotCoverParkSpecies(qfreq_species_sign, park='RICH', yrange=c(-7,50), yaxis='Quad % Freq.')
+APCO<-plotCoverParkSpecies(qfreq_species_sign, park='APCO', yrange=c(-7,50))
+PETE<-plotCoverParkSpecies(qfreq_species_sign, park='PETE', yrange=c(-7,50))
 
-#-----------------------------------------------
-# Quadrat Richness - by Species
-#-----------------------------------------------
-qrich_species<-read.csv("./results/results_qrich-by_species-response_NP.csv")
+parkgrid<-plot_grid(SARA, MIMA, ROVA, WEFA, MORR, HOFU, VAFO, GETT, CATO, ANTI, MONO, CHOH, 
+                    HAFE, ROCR, GWMP, NACE, MANA, PRWI, THST, GEWA, RICH, APCO, PETE, ncol=5)
+parkgrid
 
-qrich_species<- qrich_species %>% arrange(lat.rank) %>% 
-  mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
+spp.leg<-function(df){ 
+  ggplot(df, aes(x=cycle2, y=mean, group=species, shape=species, fill=species))+
+    geom_line(aes(y=mean, x=cycle2, colour=species), lwd=1)+
+    geom_point(aes(y=mean, x=cycle2, fill=species, shape=species), stroke=1, size=2,colour='black')+
+    scale_shape_manual(values= symb)+
+    scale_fill_manual(values = colramp)+ 
+    scale_color_manual(values = colramp)+
+    guides(shape=guide_legend(override.aes=list(size=2), ncol=5))
+}
 
-qrich_species$park<-reorder(qrich_species$park,-qrich_species$lat.rank)
+QF_S_leg<-spp.leg(df=qfreq_species_sign)
+QF_S_leg
+leg.r<-cowplot::get_legend(QF_S_leg+theme(legend.direction='vertical',legend.justification='left',
+                                          legend.box.just='bottom', legend.key.size=unit(0.75,'in'), 
+                                          legend.title=element_blank(), 
+                                          legend.text=element_text(size=12, face='italic')))
 
-plot_qrich_g<-plotQRichParkSpecies(qrich_species)
-
-#tiff(file='./results/figures/qrich_species_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
-#plot_qrich_g
-#dev.off()
+finalgrid<-plot_grid(parkgrid,leg.r,rel_heights=c(3,0.25),rel_widths=c(1,1.2),nrow=2)  
+finalgrid
 
 #----------------------------------
 # Plot frequency by species
