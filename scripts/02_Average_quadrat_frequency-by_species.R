@@ -25,15 +25,15 @@ View(df1)
 # only include species with at least 10% of plots with that guild
 df2<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumfreq=sum(qpct.freq)) %>% 
   filter((park!='ACAD'& nonzero>0.1 & sumfreq>0)|(park=='ACAD'& species=='Rhamnus frangula')) %>% 
-  filter(park!='SAHI' & park!='WOTR') %>% 
-  droplevels() %>% ungroup(park,species)
+  filter(park!='SAHI' & park!='WOTR') %>% filter(species!='Viburnum dilatatum') %>%  
+  droplevels() %>% ungroup(park,species) # Viburnum dilatatum gave the model trouble in both parks
 
 df1<-df2 %>% group_by(park, species) %>% mutate(qpres.sum=sum(quad.freq)/(12*n())) %>% 
-  filter(ifelse(park=='MONO', qpres.sum>0.02, qpres.sum>0)) #%>% mutate(nlev=length(unique(species)))
-  # There are only 18 plots in MONO, and using rules above allowed too many species for the number of df
-  # so removed the species that were the least frequent (i.e. species only occuring in the same one plot all 3 cycles)
+  filter(ifelse(park=='MONO', qpres.sum>0.02, qpres.sum>0)) %>% droplevels()#%>% mutate(nlev=length(unique(species)))
+# There are only 18 plots in MONO, and using rules above allowed too many species for the number of df
+# so removed the species that were the least frequent (i.e. species only occuring in the same one plot all 3 cycles)
 
-parkspp<-df1 %>% select(park,species) %>% unique()
+parkspp<-df1 %>% select(park,species) %>% unique() 
 
 df_park<-df1 %>% group_by(park) %>% nest()
 
@@ -130,6 +130,13 @@ coefs2_QF_S2<-coefs2_QF_S %>% mutate(coef=ifelse(grepl('cycle',term), 'Slope', '
                                        term %in% terms2 ~'AAAfirst_alpha'), park2=park) %>% 
   arrange(park2,species2) %>% select(-park)
 
+#coefs2_QF_S2 is missing slopes for Viburnum dilatatum in 2 parks. Not sure what happened.
+#missing_row1<-c('cycle.speciesViburnum.dilatatum', 0, 0, 'Slope', 'Viburnum.dilatatum', 'GWMP')
+#missing_row2<-c('cycle.speciesViburnum.dilatatum', 0, 0, 'Slope', 'Viburnum.dilatatum', 'ROCR')
+
+#coefs2_QF_S2b<-rbind(coefs2_QF_S2, missing_row1, missing_row2)
+#coefs2_QF_S2b<-coefs2_QF_S2b %>% arrange(park2, species2, coef)
+
 parkspp2<-data.frame(rbind(parkspp,parkspp)) %>% arrange(park,species)
 
 coefs2_QF_S3<-cbind(coefs2_QF_S2,parkspp2)
@@ -145,11 +152,14 @@ results3b_QF_S<-results3_QF_S %>% filter(rank==1) %>% droplevels() %>%
   mutate(est.corfac=estimate) %>% select(park,coef,est.corfac)
 
 results4_QF_S<- merge(results3_QF_S, results3b_QF_S, by=c('park','coef'), all.x=T,all.y=T)
+results4_QF_S[,c(5,7,8,10)][is.na(results4_QF_S[,c(5,7,8,10)])]<-0
+results4_QF_S$lower<-as.numeric(results4_QF_S$lower)
+results4_QF_S$upper<-as.numeric(results4_QF_S$upper)
 
 results5_QF_S<-results4_QF_S %>% 
   mutate(est.cor=ifelse(rank==1,est.corfac,est.corfac+estimate),
-         lower.cor=ifelse(rank==1,lower,est.corfac+lower),
-         upper.cor=ifelse(rank==1,upper,est.corfac+upper))
+         lower.cor=ifelse(rank==1,lower,est.corfac + lower),
+         upper.cor=ifelse(rank==1, upper,est.corfac + upper))
 
 results_final_QF_S<-results5_QF_S %>% 
   mutate(estimate=round(est.cor,4),
@@ -212,5 +222,5 @@ respCIs_final_QF_S<-respCIs_final_QF_S %>%
          park=reorder(park,-lat.rank)) %>% 
   arrange(lat.rank,species,cycle)
 
-#View(respCIs_final_QF_S)
+View(respCIs_final_QF_S)
 write.csv(respCIs_final_QF_S,"./results/results_qfreq-by_species-response_NP.csv")
