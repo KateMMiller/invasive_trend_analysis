@@ -21,12 +21,15 @@ source('./scripts/functions_for_ANALYSIS.R') # File containing functions
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,species) %>% filter(species!='noinvspp')
 head(df)
-
+View(df1)
 # only include species with non-zero cover in at least plot and present in at least 10% of plots
 df1<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumcov=sum(avg.cover)) %>% 
   filter((park!='ACAD'& nonzero>0.1 & sumcov>0)|(park=='ACAD'& species=='Rhamnus frangula')) %>% 
-  filter(park!='SAHI' & park!='WOTR') %>% 
+  filter(park!='SAHI' & park!='WOTR') %>% filter(!(park=="MONO" & species=='Ampelopsis brevipedunculata')) %>%
+  filter(!(park=='MONO' & species=="Celastrus orbiculatus")) %>% 
   droplevels() %>% ungroup(park,species)
+
+# Too many species and not enough plots/df for MONO, so had to remove the least abundant spp.
 table(df1$species,df1$park)
 parkspp<-df1 %>% select(park,species) %>% unique()
 
