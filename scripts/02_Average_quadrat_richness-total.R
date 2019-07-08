@@ -19,8 +19,9 @@ source('./scripts/functions_for_ANALYSIS.R') # File containing functions
 #-----------------------------
 # Read in data.frame without guids in first two columns
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_total_invasives.csv")#[,-c(1,2)]
-df<-df %>% filter(park!='SAHI' & park !='WOTR') %>% droplevels() %>% arrange(park,plot_name,cycle)
-
+df<-df %>% filter(park!='SAHI' & park !='WOTR' & park!='MONO') %>% 
+  droplevels() %>% arrange(park,plot_name,cycle) # for some reason MONO breaks it
+View(df)
 df_park<-df %>% group_by(park) %>% nest()
 
 #-------------------------------
