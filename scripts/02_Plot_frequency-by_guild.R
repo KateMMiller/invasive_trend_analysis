@@ -37,8 +37,10 @@ df_park<-df4 %>% group_by(park) %>% nest()
 
 df_park<-df_park %>% mutate(data=map(data,
                     ~mutate(.x,nlev=length(unique(guild)))))
-#-------------------------------
-## ---- PF_G_diag ----
+#-----------------------------------
+##  ----  model_PF_G  ---- 
+#-----------------------------------
+# Plot Frequency Results
 #-----------------------------------
 analysis.title<-"Invasive Plot Frequency by Guild"
 
@@ -50,23 +52,19 @@ PFreq.mod<-function(df) {
     control=glmerCtlList,data=df)} 
   } # random slope had singular fit, so went with simpler rand. intercept
 
-prelim_by_park_PF_G<-df_park %>% mutate(model=map(data,PFreq.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
+by_park_PF_G<-df_park %>% mutate(model=map(data,PFreq.mod) %>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions) %>% set_names(df_park$park))
+
+diag_PF_G<-unnest(by_park_PF_G, resids, pred)
+#res_PF_G<-residPlot(diag_PF_G)
+#hist_PF_G<-histPlot(diag_PF_G) 
 
 # Check conversion
-conv_PF_G<-unlist(prelim_by_park_PF_G[['model']]) %>% map('optinfo') %>% 
+conv_PF_G<-unlist(by_park_PF_G[['model']]) %>% map('optinfo') %>% 
   map('conv') %>% map('opt') %>% data.frame() %>% gather() 
 
-conv.tbl_PF_G<-data.frame(cbind(park=levels(diag_PF_G$park),conv.code=conv_PF_G$value))
-conv.tbl_PF_G # all 0s. 
-
-#-----------------------------------
-##  ----  model_PF_G  ---- 
-#-----------------------------------
-# Plot Frequency Results
-#-----------------------------------
-by_park_PF_G<-df_park %>% mutate(model=map(data,PFreq.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))#,
+conv_PF_G # all 0s. 
 
 # summarize model output
 results_PF_G<-by_park_PF_G %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
@@ -102,7 +100,7 @@ results_PF_G<-results_PF_G %>% mutate(guild=guild_labels2_PF_G$guild2,
 #-----------------------------------
 by_park_coefs_PF_G<-by_park_PF_G %>% 
   mutate(conf.coef=map(model,~bootMer(.x,FUN=fixed_fun,nsim=1000, parallel='snow',
-    ncpus=11))) %>% 
+    ncpus=10)) %>% set_names(df_park$park)) %>% 
   select(conf.coef)  # parametric bootstrap
 
 coefs_PF_G<-by_park_coefs_PF_G %>% 

@@ -8,6 +8,7 @@ library(lme4) # for glmer with logistic regression
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
 library(prediction) # for find_data(model) function
+library(beepr) # indicates when model run is finished
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -21,24 +22,27 @@ glmerCtlList <- glmerControl(optimizer=c("bobyqa","Nelder_Mead"),
 #-----------------------------
 # Read in data.frame without guids in first two columns
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv")#[,-c(1,2)]
-df<- df %>% arrange(park,plot_name,cycle,species)
-df2<-na.omit(df)
+df<- df %>% arrange(park,plot_name,cycle,species) %>% filter(species!='noinvspp')
+
 # only include speciess with at least 10% of plots with that species and <90% of all
-df3<-df2 %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
-  filter((park!='ACAD'& between(nonzero,0.1,0.9))|(park=='ACAD'& species=='Shrub')) %>% 
+df1<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
+  filter((park!='ACAD'& between(nonzero,0.1,0.9))|(park=='ACAD'& species=='Rhamnus frangula')) %>% 
+  filter(park!='SAHI' & park!='WOTR') %>%
   droplevels() %>% ungroup(park,species) 
+parkspp<-df1 %>% select(park,species) %>% unique()
 
-df4<-df3 %>% filter(park!='SAHI' & park!="WOTR") %>% droplevels()
-
-# FRHI Herbaceous, MIMA Shrub and SAHI Shrub are 100% present the whole time.
-# Several other park/species combinations are close to 100%, which causes problems in glmer
-# Had to remove speciess that were 100 plot frequency in all cycles 
-df_park<-df4 %>% group_by(park) %>% nest()
+df_park<-df1 %>% group_by(park) %>% nest()
 
 df_park<-df_park %>% mutate(data=map(data,
                     ~mutate(.x,nlev=length(unique(species)))))
-#-------------------------------
-## ---- PF_S_diag ----
+
+park_names2<-rep(levels(df1$park),each=2) # make vector of park names
+park_names2
+
+#-----------------------------------
+##  ----  model_PF_S  ---- 
+#-----------------------------------
+# Plot Frequency Results
 #-----------------------------------
 analysis.title<-"Invasive Plot Frequency by Species"
 
@@ -49,92 +53,110 @@ PFreq.mod<-function(df) {
   } else {glmer(plot.freq~cycle+(1|plot_name), family=binomial, 
     control=glmerCtlList,data=df)} 
   } # random slope had singular fit, so went with simpler rand. intercept
+  # It's too time intensive to run models twice.
 
-prelim_by_park_PF_S<-df_park %>% mutate(model=map(data,PFreq.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
+by_park_PF_S<-df_park %>% mutate(model=map(data,PFreq.mod) %>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions) %>% set_names(df_park$park))#,
+
+diag_PF_S<-unnest(by_park_PF_S, resids, pred)
+#res_PF_S<-residPlot(diag_PF_S)
+#hist_PF_S<-histPlot(diag_PF_S) 
 
 # Check conversion
-conv_PF_S<-unlist(prelim_by_park_PF_S[['model']]) %>% map('optinfo') %>% 
+conv_PF_S<-unlist(by_park_PF_S[['model']]) %>% map('optinfo') %>% 
   map('conv') %>% map('opt') %>% data.frame() %>% gather() 
 
-conv.tbl_PF_S<-data.frame(cbind(park=levels(diag_PF_S$park),conv.code=conv_PF_S$value))
-conv.tbl_PF_S # all 0s. 
-
-#-----------------------------------
-##  ----  model_PF_S  ---- 
-#-----------------------------------
-# Plot Frequency Results
-#-----------------------------------
-by_park_PF_S<-df_park %>% mutate(model=map(data,PFreq.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))#,
+conv_PF_S # all 0s. 
 
 # summarize model output
 results_PF_S<-by_park_PF_S %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
   unnest(summ) %>%  filter(effect=='fixed') %>% 
   select(park,term,estimate,std.error) %>% arrange(park,term)
 
-# reorder term factor, so can more easily associate the speciess with the terms, especially the reference term.
-table(results_PF_S$term)
-results_PF_S$term<-ordered(results_PF_S$term, 
-  c("(Intercept)","cycle","speciesHerbaceous","cycle:speciesHerbaceous",
-    "speciesShrub","cycle:speciesShrub","speciesTree","cycle:speciesTree")) 
+terms<-c('cycle','(Intercept)')
+remove<-c('cycle:species','species')
 
-results_PF_S<-results_PF_S %>% arrange(park,term) %>% 
-  mutate(estimate=round(estimate,3),std.error=round(std.error,3))
+results_PF_S2<-results_PF_S %>% mutate(coef=ifelse(grepl('cycle',term), 'Slope', 'Intercept'), 
+                                       species=case_when(
+                                         grepl('cycle:species',term) ~ str_remove(term,'cycle:species'), 
+                                         grepl('species',term) ~str_remove(term,'species')
+                                       )) 
+results_PF_S3<-results_PF_S2 %>% filter(!is.na(species)) %>% arrange(park,species)
 
-# create species labels, so we know what the first level for each model is.
-species_labels1_PF_S<-df4 %>% group_by(park,species) %>% summarise(species2=first(species)) %>% 
-  select(-species) %>%  arrange(park,species2) 
+first_alphas<-parkspp %>% arrange(park,species) %>% group_by(park) %>% summarise(species=first(species))
 
-species_labels2_PF_S<-data.frame(bind_rows(species_labels1_PF_S,
-  species_labels1_PF_S) %>% arrange(park,species2)) 
+results_PF_S_first<-results_PF_S2 %>% filter(term %in% terms) %>% select(-species) %>%  droplevels()
+results_PF_S_first2<-merge(results_PF_S_first, first_alphas, by='park')
 
-species_labels2_PF_S$coef<-rep(c('Intercept','Slope'))
+results_PF_S_comb<-rbind(results_PF_S3,results_PF_S_first2)
+nrow(results_PF_S_comb) #386
 
-park_names2_PF_S<-rep(levels(df4$park),each=2) # make vector of park names
+results_PF_S_comb<-results_PF_S_comb %>% arrange(park,species,coef) %>% 
+  mutate(estimate=round(estimate,3))
 
-results_PF_S<-results_PF_S %>% mutate(species=species_labels2_PF_S$species2,
-  coef=ifelse(grepl('cycle',term),'Slope','Intercept'))
-
+#View(results_PF_S_comb)
 ##  ---- model_results_PF_S ---- 
 #-----------------------------------
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_PF_S<-by_park_PF_S %>% 
   mutate(conf.coef=map(model,~bootMer(.x,FUN=fixed_fun,nsim=1000, parallel='snow',
-    ncpus=11))) %>% 
+    ncpus=10)) %>% set_names(df_park$park)) %>% 
   select(conf.coef)  
 
 coefs_PF_S<-by_park_coefs_PF_S %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
-  mutate(park=as.factor(park_names2_PF_S),
+  mutate(park=as.factor(park_names2),
     type=rep(c('lower','upper'),times=length(levels(park)))) %>% 
   select(park,type,everything())
 
 coefs2_PF_S<-coefs_PF_S %>% gather(term,coef,-park,-type,na.rm=T) %>% 
   spread(type,coef) %>% mutate(term=as.factor(term))
 
-coefs2_PF_S$term<-ordered(coefs2_PF_S$term, 
-  c("X.Intercept.","cycle","speciesHerbaceous","cycle.speciesHerbaceous",
-    "speciesShrub","cycle.speciesShrub","speciesTree","cycle.speciesTree")) 
+terms2<-c('cycle','X.Intercept.')
 
-coefs2_PF_S<-coefs2_PF_S %>% arrange(park,term)
-coefs3_PF_S<-data.frame(species_labels2_PF_S,coefs2_PF_S[,-1]) # removes park, so no dups
-names(coefs3_PF_S)[names(coefs3_PF_S)=='species2']<-'species'
+coefs2_PF_S2<-coefs2_PF_S %>% mutate(coef=ifelse(grepl('cycle',term), 'Slope', 'Intercept'), 
+                                     species2=case_when(
+                                       grepl('cycle.species',term) ~ str_remove(term,'cycle.species'), 
+                                       grepl('species',term) ~str_remove(term,'species'), 
+                                       term %in% terms2 ~'AAAfirst_alpha'), park2=park) %>% 
+  arrange(park2,species2) %>% select(-park)
 
-results2_PF_S<-merge(results_PF_S,coefs3_PF_S,by=c('park','species', 'coef'))
+parkspp2<-data.frame(rbind(parkspp,parkspp)) %>% arrange(park,species)
+
+#coefs2_PF_S2 is missing slopes for Viburnum dilatatum in 2 parks. Not sure what happened.
+missing_row1<-c('cycle.speciesViburnum.dilatatum', 0, 0, 'Slope', 'Viburnum.dilatatum', 'GWMP')
+missing_row2<-c('cycle.speciesViburnum.dilatatum', 0, 0, 'Slope', 'Viburnum.dilatatum', 'ROCR')
+
+coefs2_PF_S2b<-rbind(coefs2_PF_S2, missing_row1, missing_row2)
+coefs2_PF_S2b<-coefs2_PF_S2b %>% arrange(park2, species2, coef)
+
+coefs2_PF_S3<-cbind(coefs2_PF_S2b,parkspp2)
+
+coefs2_PF_S_comb<-coefs2_PF_S3 %>% select(park,term,species,coef,lower,upper) %>% arrange(park,species,coef)
+
+results2_PF_S<-merge(results_PF_S_comb,coefs2_PF_S_comb,by=c('park','species', 'coef', 'term'), all.x=T, all.y=T)
 
 results3_PF_S<- results2_PF_S %>% group_by(park,coef) %>% 
   mutate(rank=dense_rank(species))
 
 results3b_PF_S<-results3_PF_S %>% filter(rank==1) %>% droplevels() %>% 
-  mutate(est.corfPF=estimate) %>% select(park,coef,est.corfPF)
+  mutate(est.corfac=estimate) %>% select(park,coef,est.corfac)
+
+names(results3b_PF_S)
 
 results4_PF_S<- merge(results3_PF_S, results3b_PF_S, by=c('park','coef'), all.x=T,all.y=T)
+
+names(results4_PF_S)
+results4_PF_S[,c(5,7,8,10)][is.na(results4_PF_S[,c(5,7,8,10)])]<-0
+results4_PF_S$lower<-as.numeric(results4_PF_S$lower)
+results4_PF_S$upper<-as.numeric(results4_PF_S$upper)
+
 results5_PF_S<-results4_PF_S %>% 
-  mutate(est.cor=ifelse(rank==1,est.corfPF,est.corfPF+estimate),
-         lower.cor=ifelse(rank==1,lower,est.corfPF+lower),
-         upper.cor=ifelse(rank==1,upper,est.corfPF+upper))
+  mutate(est.cor=ifelse(rank==1,est.corfac,est.corfac+estimate),
+         lower.cor=ifelse(rank==1,lower,est.corfac+lower),
+         upper.cor=ifelse(rank==1,upper,est.corfac+upper))
 
 results_final_PF_S<-results5_PF_S %>% 
   mutate(estimate=round(est.cor,4),
@@ -143,9 +165,10 @@ results_final_PF_S<-results5_PF_S %>%
          sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,species,coef,estimate,lower,upper,sign) 
 
+View(results_final_PF_S)
+
 write.csv(results_final_PF_S,'./results/results_PFreq-by_species-coefs.csv', row.names=F)
 
-#View(results_final_PF_S)
 
 # Did not bootstrap for responses like other metrics. Ultimately only interested if the odds
 # of a plot having an invasive increases over time, which we get at with the coefs. 
