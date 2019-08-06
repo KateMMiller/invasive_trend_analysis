@@ -147,7 +147,7 @@ results_final_QF_G<-results5_QF_G %>%
          sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,guild,coef,estimate,lower,upper,sign) 
 
-write.csv(results_final_QF_G,'./results/results_qfreq-by_guild-coefs_NP.csv', row.names=F)
+write.csv(results_final_QF_G,'./results/results_qfreq-by_guild-coefs.csv', row.names=F)
 #View(results_final_QF_G)
 
 ##  ----  model_response_QF_G ---- 
