@@ -22,7 +22,7 @@ df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,guild)
 
 # only include guilds with at least 10% of plots with that guild
-df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumcov=sum(avg.cover)) %>% 
+df1<-df %>% group_by(park, guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumcov=sum(avg.cover)) %>% 
   filter((park!='ACAD'& nonzero>0.1& sumcov>0)|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild)
 

@@ -61,16 +61,16 @@ lat.order$lat.rank<-rank(lat.order$mean.lat)
 comb_totinv<-comb_totinv %>% left_join(.,lat.order, by='park') 
 
 # Need to add NAs for all plots in C1 for COLO, to make plotting easier
-COLO.c2<-comb_totinv %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
+#COLO.c2<-comb_totinv %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
 # taking COLO C2 and turn it into C1 with NAs
-COLO.c1<-COLO.c2 %>% mutate(cycle=1,year=year-4)
-names(COLO.c1)
-COLO.c1[,c(9:14)][!is.na(COLO.c1[,c(9:14)])]<-NA
-comb_totinv2<-rbind(comb_totinv,COLO.c1) 
-names(comb_totinv2)
+#COLO.c1<-COLO.c2 %>% mutate(cycle=1,year=year-4)
+#names(COLO.c1)
+#COLO.c1[,c(9:14)][!is.na(COLO.c1[,c(9:14)])]<-NA
+#comb_totinv2<-rbind(comb_totinv,COLO.c1) 
+#names(comb_totinv2)
 
-comb_totinv2<-comb_totinv2 %>% arrange(desc(network),plot_name,cycle)
-comb_totinv2<-comb_totinv2 %>% mutate(qpct.freq=ifelse(network!='NCRN',qpct.freq*100,qpct.freq))
+comb_totinv<-comb_totinv %>% arrange(desc(network),plot_name,cycle)
+comb_totinv2<-comb_totinv %>% mutate(qpct.freq=ifelse(network!='NCRN',qpct.freq*100,qpct.freq))
 
 write.csv(comb_totinv2,'./data/NETN-MIDN-ERMN-NCRN_total_invasives.csv', row.names=F)
 
@@ -156,15 +156,15 @@ comb_guild<-rbind(netn_guild,midn_guild,ermn_guild,ncrn_guild5)
 comb_guild<-comb_guild %>% left_join(.,lat.order, by='park')
 
 # Need to add NAs for all plots in C1 for COLO, to make plotting easier
-COLO.c2<-comb_guild %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
+#COLO.c2<-comb_guild %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
 # taking COLO C2 and turn it into C1 with NAs
-COLO.c1<-COLO.c2 %>% mutate(cycle=1,year=year-4)
-COLO.c1[,c(10:15)][!is.na(COLO.c1[,c(10:15)])]<-NA
-comb_guild2<-rbind(comb_guild,COLO.c1) 
+#COLO.c1<-COLO.c2 %>% mutate(cycle=1,year=year-4)
+#COLO.c1[,c(10:15)][!is.na(COLO.c1[,c(10:15)])]<-NA
+#comb_guild2<-rbind(comb_guild,COLO.c1) 
 
-comb_guild2<-comb_guild2 %>% mutate(qpct.freq=ifelse(network!='NCRN',qpct.freq*100,qpct.freq))
+comb_guild<-comb_guild %>% mutate(qpct.freq=ifelse(network!='NCRN',qpct.freq*100,qpct.freq))
 
-comb_guild2<-comb_guild2 %>% arrange(desc(network),plot_name,cycle) 
+comb_guild2<-comb_guild %>% arrange(desc(network),plot_name,cycle) 
 #View(comb_guild2)
 
 write.csv(comb_guild2,'./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv', row.names=F)
@@ -267,32 +267,32 @@ comb_species<-rbind(netn_species_final, midn_species_final, ermn_species_final, 
 
 table(comb_species$network)
 # Need to add NAs for all plots in C1 for COLO, to make plotting easier
-COLO.c2<-comb_species %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
+#COLO.c2<-comb_species %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
 # taking COLO C2 and turn it into C1 with NAs
 
 table(comb_species$park,comb_species$cycle)
-COLO.c1<-COLO.c2 %>% mutate(cycle=1)
-COLO.c1[,c(5,7:10)][!is.na(COLO.c1[,c(5,7:10)])]<-NA
-comb_species2<-rbind(comb_species,COLO.c1) 
+#COLO.c1<-COLO.c2 %>% mutate(cycle=1)
+#COLO.c1[,c(5,7:10)][!is.na(COLO.c1[,c(5,7:10)])]<-NA
+#comb_species2<-rbind(comb_species,COLO.c1) 
 
-comb_species3<-comb_species2 %>% arrange(desc(network),plot_name,cycle) 
+comb_species2<-comb_species %>% arrange(desc(network),plot_name,cycle) 
 
-write.csv(comb_species3,'./data/NETN-MIDN-ERMN-NCRN_species_invasives_status.csv', row.names=F)
+write.csv(comb_species2,'./data/NETN-MIDN-ERMN-NCRN_species_invasives_status.csv', row.names=F)
 
 # Combine network data
 comb_species_trends<-rbind(netn_species_final, midn_species_trends, ermn_species_final, ncrn_species_trends)
 
 # Need to add NAs for all plots in C1 for COLO, to make plotting easier
-COLO.c2<-comb_species_trends %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
+#COLO.c2<-comb_species_trends %>% filter(park=='COLO' & cycle==2) %>% droplevels() 
 # taking COLO C2 and turn it into C1 with NAs
 
-table(comb_species_trends$park,comb_species_trends$cycle)
-COLO.c1<-COLO.c2 %>% mutate(cycle=1)
-COLO.c1[,c(5,7:10)][!is.na(COLO.c1[,c(5,7:10)])]<-NA
-comb_species_trends2<-rbind(comb_species_trends,COLO.c1) 
+#table(comb_species_trends$park,comb_species_trends$cycle)
+#COLO.c1<-COLO.c2 %>% mutate(cycle=1)
+#COLO.c1[,c(5,7:10)][!is.na(COLO.c1[,c(5,7:10)])]<-NA
+#comb_species_trends2<-rbind(comb_species_trends,COLO.c1) 
 
-comb_species_trends3<-comb_species_trends2 %>% arrange(desc(network),plot_name,cycle) 
+#comb_species_trends3<-comb_species_trends2 %>% arrange(desc(network),plot_name,cycle) 
 
-write.csv(comb_species_trends3,'./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv', row.names=F)
+write.csv(comb_species_trends,'./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv', row.names=F)
 
-sort(unique(comb_species_trends3$species))
+sort(unique(comb_species_trends$species))

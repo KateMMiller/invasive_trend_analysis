@@ -33,7 +33,7 @@ plotCoverParkTotal<-function(df){
                 legend.position='none') + 
           labs(x="Cycle", y='Avg. Quadrat % Cover')+
           scale_x_discrete(breaks=c(1,2,3))+
-          scale_y_continuous(limits=c(-10,80),breaks=c(0,20,40,60,80),labels=c(0,20,40,60,80)))
+          scale_y_continuous(limits=c(-10,60),breaks=c(0,20,40,60),labels=c(0,20,40,60)))
 }
 
 # Park-level plot for invasive cover by guild
@@ -48,7 +48,7 @@ plotCoverParkGuild<-function(df){
       scale_shape_manual(values=c(21,19))+
       scale_fill_manual(values=c('white'))+
       scale_linetype_manual(values=c('dashed','solid'))+
-      scale_color_manual(values=c('Gold', 'ForestGreen','IndianRed','RoyalBlue'))+
+      scale_color_manual(values=c('Gold', 'ForestGreen','IndianRed','RoyalBlue', '#595959'))+
       theme_bw()+
       theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
         plot.margin=unit(c(0.4,0.4,0.5,0.3),'lines'),
@@ -75,9 +75,9 @@ plotCoverGuild<-function(df){
 } #
 
 # Species by park plots for invasive cover trends
-coefPlot<- function(df){
+coefPlot<- function(df, yrange=c(-10,30), ylabel){
   spplabs<-data.frame(table(df$species))
-  spplabs<-spplabs %>% filter(Freq>4) %>% droplevels()
+  spplabs<-spplabs %>% filter(Freq>1) %>% droplevels()
   spplabs$axistick<-lag(spplabs$Freq,k=1)
   spplabs[1,3]<-0
   spplabs$axisticks<-cumsum(spplabs$axistick)+1
@@ -87,20 +87,24 @@ coefPlot<- function(df){
   df2<-df2 %>% arrange(species,park) %>% droplevels()
   df2$axis<-as.numeric(row.names(df2))
   df2$sign<-as.factor(df2$sign)
-  dfsign<-df2 %>% mutate(park=ifelse(sign==1,paste(park),NA))
+  #dfsign<-df2 %>% mutate(park=ifelse(sign==1,paste(park),NA))
   #colrkeep=distinctColorPalette(k=nlevels(df2$species))
-  print(ggplot(df2, aes(x=axis, y=estimate, colour=species, fill=sign, labels=df2$species)) +
+  print(ggplot(df2, aes(x=axis, y=estimate, fill=species, labels=df2$species)) +
           geom_hline(yintercept=0, lwd=1, color='DimGrey') +
           geom_errorbar(aes(ymin=lower, ymax=upper, colour=species), width=1.5, size=1, show.legend = F)+
-          geom_point(aes(fill=sign), stroke=1, size=2, colour='black', shape=21)+ 
-          scale_fill_manual(values=c('white','DimGrey'), guide=F)+
-          scale_color_manual(values=colrkeep)+  
-          theme_bw()  + coord_flip() +  ylab('Slope: Average % Cover Change')+ ylim(-10,22)+
-          scale_x_reverse(name='Species',breaks=unique(df2$axisticks), labels=levels(df2$species))+ 
+          geom_point(stroke=1, size=2, colour='black', shape=21)+ 
+          scale_fill_manual(values=c(colrkeep), guide=F)+
+          scale_color_manual(values=colrkeep)+ theme_bw()+
+          theme(axis.text.y=element_text(angle=45, size=11),
+                axis.title.x=element_text(margin=margin(5,0,1,0)))+
+          
+          #theme(panel.grid.major=element_blank())+#, panel.grid.minor=element_blank())+  
+          coord_flip() +  ylab(paste0('Slope: ',ylabel))+ ylim(yrange)+
+          scale_x_reverse(name=NULL, breaks=unique(df2$axisticks), labels=levels(df2$species))+ 
           #geom_label_repel(labels=spplabs$species, box.padding=0.4)+
           #geom_dl(aes(label=park), method=list(dl.trans(x=x+0.25),dl.combine("last.points"), cex=0.7, colour='black'))+
-          geom_text(data=dfsign,aes(label=park, y=ifelse(upper>0,upper+1.5,lower-0.25)),#,direction="y",nudge_x=-0.1,
-                    vjust=0.5, hjust=1, colour='black', cex=3 )
+          geom_text(data=df2,aes(label=park, y=ifelse(upper>0,upper+3,lower-0.3)), # avecov as upper+2 lower-0.3
+                    nudge_x=-0.1, vjust=0.5, hjust=1, colour='black', cex=3.5 )
   )
 }
 
