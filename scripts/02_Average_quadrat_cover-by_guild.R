@@ -22,8 +22,8 @@ df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,guild)
 
 # only include guilds with at least 10% of plots with that guild
-df1<-df %>% group_by(park,guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
-  filter((park!='ACAD'& nonzero>0.1)|(park=='ACAD'& guild=='Shrub')) %>% 
+df1<-df %>% group_by(park, guild) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumcov=sum(avg.cover)) %>% 
+  filter((park!='ACAD'& nonzero>0.1& sumcov>0)|(park=='ACAD'& guild=='Shrub')) %>% 
   droplevels() %>% ungroup(park,guild)
 
 df2<-df1 %>% filter(!(network=='NCRN'& guild=='Tree') & (park!='SAHI') & (park!='WOTR')) %>% droplevels()
@@ -44,10 +44,12 @@ avgcov.mod<-function(df) {
   } else {lmer(avg.cover~cycle+(1|plot_name),data=df)} 
   } # random slope had singular fit, so went with simpler rand. intercept
 
-prelim_by_park_AC_G<-df_park %>% mutate(model=map(data,avgcov.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
+prelim_by_park_AC_G<-df_park %>% mutate(model=map(data,avgcov.mod) %>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions) %>% set_names(df_park$park))
 
 diag_AC_G<-unnest(prelim_by_park_AC_G, resids, pred)
+
 res_AC_G<-residPlot(diag_AC_G)
 hist_AC_G<-histPlot(diag_AC_G) # residuals are pretty wonky. 
 
@@ -55,16 +57,16 @@ hist_AC_G<-histPlot(diag_AC_G) # residuals are pretty wonky.
 conv_AC_G<-unlist(prelim_by_park_AC_G[['model']]) %>% map('optinfo') %>% 
   map('conv') %>% map('opt') %>% data.frame() %>% gather() 
 
-conv.tbl_AC_G<-data.frame(cbind(park=levels(diag_AC_G$park),conv.code=conv_AC_G$value))
-conv.tbl_AC_G # all 0s. 
+conv_AC_G
 
 #-----------------------------------
 ##  ----  model_AC_G  ---- 
 #-----------------------------------
 # Average Invasive % Cover Results
 #-----------------------------------
-by_park_AC_G<-df_park %>% mutate(model=map(data,avgcov.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))#,
+by_park_AC_G<-df_park %>% mutate(model=map(data,avgcov.mod) %>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions) %>% set_names(df_park$park))#,
 
 # summarize model output
 results_AC_G<-by_park_AC_G %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
@@ -99,8 +101,9 @@ results_AC_G<-results_AC_G %>% mutate(guild=guild_labels2_AC_G$guild2,
 # Create bootstrapped CIs on intercept and slopes
 #-----------------------------------
 by_park_coefs_AC_G<-by_park_AC_G %>% 
-  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE)))) %>% 
-  select(conf.coef)  
+  mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE))) %>% 
+  set_names(df_park$park)) %>% 
+  select(conf.coef)
 
 coefs_AC_G<-by_park_coefs_AC_G %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
@@ -153,7 +156,7 @@ write.csv(results_final_AC_G,'./results/results_avecov-by_guild-coefs_NP.csv', r
 # for each cycle by guild level 
 by_park_resp_AC_G<-by_park_AC_G %>% 
   mutate(conf.est=map(model,
-    ~case_bootstrap(.x, fn=confFun, B=1000, resample=c(TRUE,FALSE))))
+    ~case_bootstrap(.x, fn=confFun, B=1000, resample=c(TRUE,FALSE))) %>% set_names(df_park$park))
 
 by_park_resp_AC_G<-by_park_resp_AC_G %>% mutate(cols=map(model,~getColNames(.x)), 
   boot.t=map2(conf.est,cols,~setColNames(.x,.y))) # make labels for output

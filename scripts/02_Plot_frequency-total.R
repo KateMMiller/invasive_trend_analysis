@@ -34,8 +34,10 @@ df3<-df2 %>% group_by(park) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>%
 # Had to remove guilds that were 100 plot frequency in all cycles 
 df_park<-df3 %>% group_by(park) %>% nest()
 
-#-------------------------------
-## ---- PF_T_diag ----
+#-----------------------------------
+##  ----  model_PF_T  ---- 
+#-----------------------------------
+# Plot Frequency Results
 #-----------------------------------
 analysis.title<-"Invasive Plot Frequency Total"
 
@@ -45,24 +47,16 @@ PFreq.mod<-function(df) {
     control=glmerCtlList,data=df)
   } # random slope had singular fit, so went with simpler rand. intercept
 
-prelim_by_park_PF_T<-df_park %>% mutate(model=map(data,PFreq.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))
+by_park_PF_T<-df_park %>% mutate(model=map(data,PFreq.mod) %>% set_names(df_park$park),
+  resids=map2(data,model,add_residuals) %>% set_names(df_park$park),
+  pred=map2(data,model,add_predictions) %>% set_names(df_park$park))
 
 # Check conversion
-diag_PF_T<-unnest(prelim_by_park_PF_T, resids, pred)
-conv_PF_T<-unlist(prelim_by_park_PF_T[['model']]) %>% map('optinfo') %>% 
+diag_PF_T<-unnest(by_park_PF_T, resids, pred)
+conv_PF_T<-unlist(by_park_PF_T[['model']]) %>% map('optinfo') %>% 
   map('conv') %>% map('opt') %>% data.frame() %>% gather() 
 
-conv.tbl_PF_T<-data.frame(cbind(park=levels(diag_PF_T$park),conv.code=conv_PF_T$value))
-conv.tbl_PF_T # all 0s. 
-
-#-----------------------------------
-##  ----  model_PF_T  ---- 
-#-----------------------------------
-# Plot Frequency Results
-#-----------------------------------
-by_park_PF_T<-df_park %>% mutate(model=map(data,PFreq.mod),
-  resids=map2(data,model,add_residuals),pred=map2(data,model,add_predictions))#,
+conv_PF_T # all 0s. 
 
 # summarize model output
 results_PF_T<-by_park_PF_T %>% mutate(summ=map(model,broom.mixed::tidy)) %>% 
@@ -86,7 +80,7 @@ results_PF_T<-results_PF_T %>% mutate(coef=ifelse(grepl('cycle',term),'Slope','I
 #-----------------------------------
 by_park_coefs_PF_T<-by_park_PF_T %>% 
   mutate(conf.coef=map(model,~bootMer(.x,FUN=fixed_fun,nsim=1000, parallel='snow',
-    ncpus=11))) %>% select(conf.coef)  # parametric bootstrap
+    ncpus=10)) %>% set_names(df_park$park)) %>% select(conf.coef)  # parametric bootstrap
 
 coefs_PF_T<-by_park_coefs_PF_T %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
@@ -111,7 +105,7 @@ results_final_PF_T<-results2_PF_T %>%
 
 write.csv(results_final_PF_T,'./results/results_PFreq-total-coefs.csv', row.names=F)
 
-#View(results_final_PF_T)
+View(results_final_PF_T)
 
 # Did not bootstrap for responses like other metrics. Ultimately only interested if the odds
 # of a plot having an invasive increases over time, which we get at with the coefs. 

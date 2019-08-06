@@ -2,7 +2,11 @@
 # Code for invasive trend analysis
 #-----------------------------------
 library(forestNETN)
+library(tidyverse)
 options(scipen=100,digits=6)
+
+invlist<-read.csv("./data/Invasive_List.csv")
+head(invlist)
 #----------------------------------
 # Function to remove ACAD.029.2010 
 #----------------------------------
@@ -14,8 +18,8 @@ rmRejected<-function(df){
 
 #-----------------------------
 # Connect to backend forest database and import data and lookup tables for the queries below
-importData()
-quadsamp$numHerbPlots<-apply(quadsamp[,c(15:22)], 1,sum)
+importData(odbc='NETN_Field')
+quadsamp$numHerbPlots<-apply(quadsamp[,c(15:22)], 1, sum)
 
 park.plots2<-joinLocEvent(from=2007, to=2018, QAQC=F,rejected=F,locType='VS',output='short') 
 park.plots1<-merge(park.plots2, quadsamp[,c("Event_ID","numHerbPlots")], by="Event_ID", all.x=T)
@@ -24,36 +28,43 @@ park.plots<-rmRejected(park.plots1)
 #---------------------------
 # Summarise data by species for each park
 #---------------------------
-quads1<-joinQuadData(speciesType='invasive',park='all',from=2007,to=2018,QAQC=F)
+# Quadrat data summary by species
+quads1<-joinQuadData(speciesType='exotic',park='all',from=2007,to=2018,QAQC=F)
 quads1$Latin_Name<-as.factor(quads1$Latin_Name)
 quads1<-rmRejected(quads1)
-quads1<- quads1 %>% mutate(cycle= case_when(Year<=2010~1, 
+quads_inv<- quads1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels()
+quads2<-merge(park.plots, quads_inv[,c('Event_ID','numHerbPlots','UC','UR','MR','BR','BC','BL','ML','UL',
+                                       'Latin_Name','Tree','Shrub','Vine','Herbaceous','Graminoid','Exotic',
+                                       'avg.cover','avg.freq')], by='Event_ID', all.x=T)
+quads3<-quads2 %>% mutate(cycle= case_when(Year<=2010~1, 
                                                       between(Year,2011,2014)~2, 
                                                       between(Year,2015,2018)~3),
                            Latin_Name=ifelse(is.na(Latin_Name),'noinvspp',paste(Latin_Name)))
 
-quadscov<-quads1 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.cover) %>% 
+quadscov<-quads3 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.cover) %>% 
   spread(Latin_Name,avg.cover,fill=0)
 
-quadscov1<-quadscov %>% mutate(Euonymus=`Euonymus alatus`+ Euonymus + `Euonymus fortunei`, 
+names(quadscov)
+
+quadscov1<-quadscov %>% mutate(`Euonymus alatus`=`Euonymus alatus`+ Euonymus, 
                                Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
                                `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
                                Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
-                        select(-`Euonymus atropurpureus`, -`Euonymus alatus`, -`Euonymus fortunei`,
+                        select(-`Euonymus`,
                                -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
-                               -`Persicaria longiseta`, -`Persicaria posumbu`, -`Vincetoxicum nigrum`)
+                                -`Vincetoxicum nigrum`)
 
 
-quadsfreq<-quads1 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.freq) %>% 
+quadsfreq<-quads3 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.freq) %>% 
   spread(Latin_Name,avg.freq,fill=0)
 
-quadsfreq1<-quadsfreq %>% mutate(Euonymus=`Euonymus alatus`+ Euonymus + `Euonymus fortunei`, 
+quadsfreq1<-quadsfreq %>% mutate(`Euonymus alatus`=`Euonymus alatus`+ Euonymus, 
                                  Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
                                  `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
                                  Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
-                          select(-`Euonymus atropurpureus`, -`Euonymus alatus`, -`Euonymus fortunei`,
+                          select(-`Euonymus`,
                                  -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
-                                 -`Persicaria longiseta`, -`Persicaria posumbu`, -`Vincetoxicum nigrum`)
+                                 -`Vincetoxicum nigrum`)
 
 quadscov2<-quadscov1 %>% gather("Latin_Name","avgcov", -(Event_ID:cycle))
 quadsfreq2<-quadsfreq1 %>% gather("Latin_Name","avgfreq",-(Event_ID:cycle))
@@ -63,41 +74,53 @@ names(quads2)
 table(complete.cases(quads2$avgcov))
 table(complete.cases(quads2$avgfreq))
 
-
-netnspp<-makeSppList('invasive',from=2007, to=2018)
-netnspp$Latin_Name[is.na(netnspp$Latin_Name)]<-'noinvspp'
-table(complete.cases(netnspp$Latin_Name))
-netnspp1<-rmRejected(netnspp)
-netnspp1<- netnspp1 %>% mutate(cycle= case_when(Year<=2010~1, 
+# Add plot-level species occurence
+netnspp<-makeSppList('all',from=2007, to=2018)
+netnspp2<-netnspp %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels()
+netnspp3<-merge(park.plots,netnspp2[,c('Event_ID','Latin_Name','Tree','Shrub','Herbaceous','Graminoid','Exotic',
+                                       'avg.quad.cover','avg.quad.freq')], by='Event_ID',all.x=T)
+netnspp3$Latin_Name[is.na(netnspp3$Latin_Name)]<-'noinvspp'
+table(complete.cases(netnspp3$Latin_Name))
+netnspp4<-rmRejected(netnspp3)
+netnspp5<- netnspp4 %>% mutate(cycle= case_when(Year<=2010~1, 
                                             between(Year,2011,2014)~2, 
                                             between(Year,2015,2018)~3),
                                present=1) %>% 
                         select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name, present)
 
-netnspp2<-netnspp1 %>% spread(Latin_Name, present, fill=0)
-netnspp2<-netnspp2 %>% mutate(Euonymus=`Euonymus alatus`+ Euonymus + `Euonymus fortunei`, 
+netnspp6<-netnspp5 %>% spread(Latin_Name, present, fill=0)
+names(netnspp6)
+
+netnspp7<-netnspp6 %>% mutate(`Euonymus alatus`=`Euonymus alatus`+ Euonymus, 
                               Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
                               `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
                               Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
-                       select(-`Euonymus atropurpureus`, -`Euonymus alatus`, -`Euonymus fortunei`,
+                       select(-`Euonymus`,
                               -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
-                              -`Persicaria longiseta`, -`Persicaria posumbu`, -`Vincetoxicum nigrum`)
-netnspp3<-netnspp2 %>% gather('Latin_Name','plotfreq',-(Event_ID:cycle))
+                              -`Vincetoxicum nigrum`)
+netnspp8<-netnspp7 %>% gather('Latin_Name','plotfreq',-(Event_ID:cycle))
 
-sppcomb<-merge(netnspp3, quads2, by=c('Event_ID','Unit_Code','Plot_Name','cycle','Latin_Name'), all.x=T,all.y=T)
-#View(sppcomb)
+netnspp8<-netnspp8 %>% mutate(plotfreq=ifelse(plotfreq>1,1,plotfreq))
+head(netnspp8)
+
+sppcomb<-merge(netnspp8, quads2, by=c('Event_ID','Unit_Code','Plot_Name','cycle','Latin_Name'), all.x=T,all.y=T)
 
 sppcomb$avgcov[is.na(sppcomb$avgcov)]<-0
 sppcomb$avgfreq[is.na(sppcomb$avgfreq)]<-0
+sppcomb$plotfreq[is.na(sppcomb$plotfreq)]<-0
 
-head(sppcomb)
-spp_comb_final<-sppcomb %>% mutate(plot.freq=plotfreq, avg.cover=avgcov,quad.freq=avgfreq, qpct.freq=avgfreq*100) %>% 
+sppcomb<-sppcomb %>% filter(Latin_Name !="<NA>") %>% filter(Latin_Name!='noinvspp')
+unique(sppcomb$Latin_Name)
+
+spp_comb2<-sppcomb %>% mutate(plot.freq=plotfreq, avg.cover=avgcov, quad.freq=avgfreq, qpct.freq=avgfreq*100) %>% 
   select(-Event_ID,-plotfreq,-avgcov, -avgfreq) %>% arrange(Plot_Name,cycle)
-head(spp_comb_final)
+spp_comb3<- merge(spp_comb2, invlist, by="Latin_Name",all.x=T)
+spp_comb_final<- spp_comb3 %>% mutate(species=ifelse(Accepted=='Y', paste0(Latin_Name), paste0(Accepted.Name))) %>% 
+  select(Unit_Code, Plot_Name, cycle, species, plot.freq, avg.cover, quad.freq, qpct.freq) # replaced old with new names
 
 write.csv(spp_comb_final, './data/NETN/NETN_invasive_species_data.csv', row.names=FALSE)
 
-sppcomb2<-sppcomb %>% filter(Latin_Name!='noinvspp') %>% group_by(Unit_Code,cycle,Latin_Name) %>% 
+sppcomb2<-sppcomb %>% group_by(Unit_Code,cycle,Latin_Name) %>% 
                       summarise(avgcov=mean(avgcov), avgfreq=mean(avgfreq), 
                                 plotfreq=sum(plotfreq), numplots=n())
 head(sppcomb2)
@@ -105,7 +128,7 @@ head(sppcomb2)
 write.csv(sppcomb2,'./data/NETN/NETN_park-level_invasive_species_summary.csv', row.names=FALSE)
 
 topspp<-sppcomb2 %>% filter(cycle==3) %>% group_by(Latin_Name) %>% summarise(plotfreq=sum(plotfreq)) %>% arrange(-plotfreq)
-#View(topspp)
+head(topspp)
 
 #---------------------------
 # Summarize data by guild
@@ -116,24 +139,31 @@ table(plants$Shrub, plants$Vine)
 table(plants$Graminoid,plants$Herbaceous)
 
 plants<-plants %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
-  Shrub=ifelse(Tree+Shrub>1,1,Shrub),Shrub=ifelse(Vine==1,1,Shrub)) 
+  Shrub=ifelse(Tree+Shrub>1,1,Shrub)) 
 # Spp like RHACAT that we treat as shrubs, but that have to be on tree list 
 # because they're sometimes >10cm DBH, are set to only be shrubs here.
 
 #---------------------------------
 # Plot Frequency and Plot Richness
-spplist1<-makeSppList(speciesType='invasive')
-spplist<-rmRejected(spplist1)
-names(spplist)
+prespplist1<-makeSppList('all',from=2007, to=2018)
+prespplist2<-prespplist1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels()
+prespplist3<-merge(park.plots,prespplist2[,c('Event_ID','Latin_Name','Tree','Shrub','Herbaceous','Graminoid','Exotic',
+                                       'avg.quad.cover','avg.quad.freq')], by='Event_ID',all.x=T)
+prespplist3$Latin_Name[is.na(prespplist3$Latin_Name)]<-'noinvspp'
+prespplist4 <- rmRejected(prespplist3)
+prespplist5 <- prespplist4 %>% mutate(cycle= case_when(Year<=2010~1, 
+                                                between(Year,2011,2014)~2, 
+                                                between(Year,2015,2018)~3),
+                               present=1) %>% 
+  select(Event_ID, Unit_Code, Plot_Name, cycle, Latin_Name, Tree:Graminoid, present)
 
-spplist<-spplist %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
-  Shrub=ifelse(Tree+Shrub>1,1,Shrub))
+spplist<-prespplist5 %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
+  Shrub=ifelse(Tree+Shrub>1,1,Shrub), present=ifelse(Latin_Name=="noinvspp",0,1))
 
-spplist[,c(13:24,27:33)][is.na(spplist[,c(13:24,27:33)])]<-0
-spplist$pres.temp<-ifelse(rowSums(spplist[,c(13:24)])>0,1,0)
+sort(unique(spplist$Latin_Name))
 
 spplist2<-spplist %>% group_by(Event_ID,Tree,Shrub,Herbaceous,Graminoid) %>% 
-  summarise(numPlotSpp=sum(pres.temp),plotFreq=ifelse(sum(pres.temp)>0,1,0))
+  summarise(numPlotSpp=sum(present),plotFreq=ifelse(sum(present)>0,1,0))
 
 spplist3<-merge(park.plots,spplist2,by="Event_ID",all.x=T)
 
@@ -148,13 +178,19 @@ numPlotSpp<-spplist3 %>% select(Event_ID,Tree:Graminoid,numPlotSpp) %>%
 
 #---------------------------
 # Quadrat richness by guild
-quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',speciesType='invasive') 
+quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',speciesType='all') 
 quad1<-rmRejected(quad)
+names(quad1)
 
-quad1<-quad1 %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
-  Shrub=ifelse(Tree+Shrub>1,1,Shrub),Shrub=ifelse(Vine==1,1,Shrub))
+quad2<-quad1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels() %>% 
+  select(Event_ID, UC:UL,Latin_Name:Shrub,Herbaceous,Graminoid,Exotic,avg.cover,avg.freq )
 
-quad.r<-quad1 %>% group_by(Event_ID,Tree,Shrub,Herbaceous,Graminoid) %>% 
+quad3<-merge(park.plots, quad2, by='Event_ID',all.x=T)
+
+quad4<-quad3 %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree),
+  Shrub=ifelse(Tree+Shrub>1,1,Shrub))
+
+quad.r<-quad3 %>% group_by(Event_ID,Tree,Shrub,Herbaceous,Graminoid) %>% 
   summarise(numHerbPlots=first(numHerbPlots),UC=sum(UC),UR=sum(UR),MR=sum(MR),BR=sum(BR),
     BC=sum(BC),BL=sum(BL),ML=sum(ML),UL=sum(UL))
 
@@ -167,8 +203,33 @@ quad.r2$avg.quad.r[is.na(quad.r2$avg.quad.r)]<-0
 head(quad.r2)
 #--------------------------
 # Summarise quadrat cover and frequency by guild
-guild1<-sumQuadGuilds(speciesType='invasive')
-guild<-rmRejected(guild1)
+quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',speciesType='all') 
+quad1<-rmRejected(quad)
+
+quad2<-quad1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels() %>% 
+  select(Event_ID,Tree,Shrub,Herbaceous,Graminoid, avg.cover, UC, UR, MR, BR, BC, BL, ML, UL)
+
+quad3<-merge(park.plots,quad2, by='Event_ID',all.x=T)
+quad4<-quad3 %>% group_by(Event_ID, Tree, Shrub, Herbaceous, Graminoid) %>% 
+  summarise(avg.cover=sum(avg.cover),
+            UC=ifelse(sum(UC)>0,1,0),UR=ifelse(sum(UR)>0,1,0),MR=ifelse(sum(MR)>0,1,0),BR=ifelse(sum(BR)>0,1,0),
+            BC=ifelse(sum(BC)>0,1,0),BL=ifelse(sum(BL)>0,1,0),ML=ifelse(sum(ML)>0,1,0),UL=ifelse(sum(UL)>0,1,0),
+            avg.freq=(UC+UR+MR+BR+BC+BL+ML+UL)/first(numHerbPlots)) %>% 
+  mutate(guild= case_when(Tree==1 ~'Tree',
+                          Shrub==1~'Shrub',
+                          Herbaceous==1~'Herbaceous',
+                          Graminoid==1~'Graminoid')) %>% ungroup() %>% select(Event_ID,guild,avg.cover,avg.freq)
+
+park.plots2<-park.plots %>% mutate(Graminoid=1,Herbaceous=1,Fern=1,Shrub=1,Tree=1) %>%
+  tidyr::gather(key=guild,value=pres,Graminoid:Tree) %>% select(-pres)
+
+quads.comb1<-merge(park.plots2,quad4,by=c("Event_ID","guild"),all.x=T)
+names(quads.comb1)
+
+quads.comb1[,14:15][is.na(quads.comb1[,14:15])]<-0
+
+guild<-quads.comb1 %>% select(Location_ID,Event_ID,Unit_Code:cycle,guild,avg.cover:avg.freq) %>%
+  arrange(Plot_Name,Year,guild)
 
 #--------------------------
 # Combine metrics
@@ -183,10 +244,10 @@ comb4<-merge(comb3,guild[,c("Event_ID","guild","avg.cover","avg.freq")],by=c("Ev
 comb5<-merge(comb4,numPlotSpp,by=c("Event_ID",'guild'),all.x=T)
 
 comb5[,14:18][is.na(comb5[,14:18])]<-0
-names(comb5)
 
 comb5<-comb5 %>% mutate(quadFreq=avg.freq*numHerbPlots) %>% select(Event_ID,Location_ID,Unit_Code:cycle,guild,
   plotFreq, avg.quad.r, avg.cover, quadFreq, avg.freq, numPlotSpp)
+names(comb5)
 
 colnames(comb5)<-c("Event_ID","Location_ID","Unit_Code","Plot_Name","Plot_Number","X_Coord","Y_Coord",    
   "Panel","Year","Event_QAQC","cycle","guild","plot.freq","avg.quad.r","avg.cover","quad.freq","qpct.freq","numPlotSpp")
@@ -199,23 +260,40 @@ write.csv(comb5,'./data/NETN/NETN_invasive_guild_data.csv',row.names=F)
 # Summarize total invasive data
 #-------------------------------------
 # Plot Frequency and Plot Richness of all invasives
-spplist1<-makeSppList(speciesType='invasive')
-spplist<-rmRejected(spplist1)
+prespplist1<-makeSppList('all',from=2007, to=2018)
+prespplist2<-prespplist1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels() %>% 
+  select(Event_ID, Latin_Name, tree.stems:addspp.present)
 
-names(spplist)
-spplist[,c(13:24,27:33)][is.na(spplist[,c(13:24,27:33)])]<-0
-spplist$pres.temp<-ifelse(rowSums(spplist[,c(13:24)])>0,1,0)
+prespplist3<-merge(park.plots,prespplist2, by='Event_ID',all.x=T)
+prespplist3$Latin_Name[is.na(prespplist3$Latin_Name)]<-'noinvspp'
+prespplist4 <- rmRejected(prespplist3)
+names(prespplist4)
+prespplist5 <- prespplist4 %>% mutate(cycle= case_when(Year<=2010~1, 
+                                                       between(Year,2011,2014)~2, 
+                                                       between(Year,2015,2018)~3),
+                                      present=1) %>% 
+  select(Event_ID, Unit_Code, Plot_Name, cycle, Latin_Name, present)
 
-plotFreq<-spplist %>% group_by(Event_ID) %>% 
-  summarise(numPlotSpp=sum(pres.temp),plotFreq=ifelse(sum(pres.temp)>0,1,0))
+spplist<-prespplist5 %>% mutate(present=ifelse(Latin_Name=="noinvspp",0,1))
 
+spplist2<-spplist %>% group_by(Event_ID) %>% 
+  summarise(numPlotSpp=sum(present),plotFreq=ifelse(sum(present)>0,1,0))
+
+plotFreq<-merge(park.plots,spplist2,by="Event_ID",all.x=T) %>% arrange(Plot_Name,cycle)
 head(plotFreq)
+
 #---------------------------
 # Quadrat richness and average cover of all invasives
-quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',speciesType='invasive') 
-quad1<-rmRejected(quad) %>% arrange(Plot_Name)
+quad<-joinQuadData(from=2007, to=2018, QAQC=F,locType='VS',output='short',speciesType='all') 
+quad1<-rmRejected(quad)
+names(quad1)
 
-quad.r<-quad1 %>% group_by(Event_ID) %>% 
+quad2<-quad1 %>% filter(Latin_Name %in% invlist$Latin_Name) %>% droplevels() %>% 
+  select(Event_ID, UC:UL,Latin_Name,avg.cover,avg.freq )
+
+quad3<-merge(park.plots, quad2, by='Event_ID',all.x=T)
+
+quad.r<-quad3 %>% group_by(Event_ID) %>% 
   summarise(numHerbPlots=first(numHerbPlots),UC=sum(UC),UR=sum(UR),MR=sum(MR),BR=sum(BR),
     BC=sum(BC),BL=sum(BL),ML=sum(ML),UL=sum(UL), avg.cover=sum(avg.cover))
 
@@ -233,9 +311,9 @@ head(quad.r2) #quad.r2 has average quadrat exotic richness
 #--------------------------
 # Combine metrics
 #--------------------------
-comb1<-merge(park.plots,plotFreq,by='Event_ID',all.x=T) 
+comb1<-merge(park.plots,plotFreq[,c('Event_ID','numPlotSpp','plotFreq')],by='Event_ID',all.x=T) 
 comb2<-merge(comb1,quad.r2,by=c("Event_ID"),all.x=T)
-head(comb2)
+names(comb2)
 
 comb2[,13:18][is.na(comb2[,13:18])]<-0
 names(comb2)
@@ -246,29 +324,3 @@ colnames(comb2)<-c("Event_ID","Location_ID","Unit_Code","Plot_Name","Plot_Number
 comb2<-comb2 %>% arrange(Plot_Name,cycle)
 write.csv(comb2,'./data/NETN/NETN_invasive_total_data.csv',row.names=F)
 
-#-----------------------------
-# Create invasive species list
-#-----------------------------
-library(RODBC);library(tidyverse)
-db<-odbcConnect("NETNFVM")
-plants<-sqlFetch(db,'tlu_plants')
-odbcClose(db)
-
-notinv<-c("Abies concolor",'Aesculus hippocastanum','Catalpa bignonioides','Catalpa speciosa',
-  'Cladrastis kentukea','Larix decidua','Malus pumila','Picea abies','Pinus nigra','Pinus sylvestris',
-  'Prunus avium','Prunus cerasus','Prunus domestica','Pyrus','Salix alba','Ulmus procera')
-
-invtrees<-plants %>% filter(Tree==1 & Exotic==1 & !Latin_Name %in% notinv ) %>% select(Latin_Name) %>% 
-  arrange(Latin_Name) %>% droplevels()
-
-# TSN for bamboo species are 42023,18848. They weren't on indicator list, so need to be added
-plants2<-plants %>% mutate(Tree=ifelse(Tree+Shrub>1,0,Tree), Shrub=ifelse(Tree+Shrub>1,1,Shrub),
-  Shrub=ifelse(Vine==1,1,Shrub)) %>%
-  arrange(desc(Tree),desc(Shrub),desc(Herbaceous),desc(Graminoid),Latin_Name)
-
-plants2<-plants2 %>% filter(Indicator_Invasive_NETN==T |(Indicator_MIDN==1 & Exotic==1)|TSN %in% c(42023,18848)|
-    (Latin_Name %in% invtrees$Latin_Name)) %>% 
-  select(TSN,Latin_Name,Tree,Shrub,Herbaceous,Graminoid) %>% droplevels() %>% 
-  arrange(desc(Tree),desc(Shrub),desc(Herbaceous),desc(Graminoid),Latin_Name)
-
-write.csv(plants2,'./data/MIDN-NETN_inv_spp_list.csv', row.names=F)
