@@ -33,7 +33,7 @@ plotCoverParkTotal<-function(df){
                 legend.position='none') + 
           labs(x="Cycle", y='Avg. Quadrat % Cover')+
           scale_x_discrete(breaks=c(1,2,3))+
-          scale_y_continuous(limits=c(-10,60),breaks=c(0,20,40,60),labels=c(0,20,40,60)))
+          scale_y_continuous(limits=c(-10,80),breaks=c(0,20,40,60,80),labels=c(0,20,40,60,80)))
 }
 
 # Park-level plot for invasive cover by guild
