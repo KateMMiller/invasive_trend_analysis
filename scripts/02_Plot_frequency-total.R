@@ -99,13 +99,13 @@ results2_PF_T<-merge(results_PF_T,coefs2_PF_T,by=c('park', 'coef'))
 results_final_PF_T<-results2_PF_T %>% 
   mutate(estimate=round(estimate,4),
     lower=round(lower,4),
-    upper=round(upper,4), 
+    upper=round(upper,4), s
     sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,coef,estimate,lower,upper,sign) 
 
 write.csv(results_final_PF_T,'./results/results_PFreq-total-coefs.csv', row.names=F)
 
-View(results_final_PF_T)
+#View(results_final_PF_T)
 
 # Did not bootstrap for responses like other metrics. Ultimately only interested if the odds
 # of a plot having an invasive increases over time, which we get at with the coefs. 

@@ -91,10 +91,18 @@ head(totinv)
 guildinv<-read.csv('./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv')
 head(guildinv)
 View(totinv)
+
 parktot<-totinv %>% filter(cycle==3) %>% group_by(network, park, lat.rank) %>% 
   summarise(plot.freq=sum(plot.freq), plot.pfreq=round(100*sum(plot.freq)/n(),2), avg.cover=round(mean(avg.cover),2), quad.pfreq=round(mean(qpct.freq),2), totplots=n()) %>% 
   select(lat.rank, everything()) %>% arrange(-plot.pfreq, -avg.cover, -quad.pfreq)
 
 write.csv(parktot, './results/status/park-level_summaries.csv', row.names=F)
+
+parkguild<-guildinv %>% filter(cycle==3) %>% group_by(network, park, lat.rank, guild) %>% 
+  summarise(plot.freq=sum(plot.freq), plot.pfreq=round(100*sum(plot.freq)/n(),2), avg.cover=round(mean(avg.cover),2), quad.pfreq=round(mean(qpct.freq),2), totplots=n()) %>% 
+  select(lat.rank, everything()) %>% arrange(-plot.pfreq, -avg.cover, -quad.pfreq)
+
+
+write.csv(parkguild, './results/status/park-level_summaries_guild.csv', row.names=F)
 
 View(parktot)
