@@ -21,25 +21,62 @@ source('./scripts/functions_for_ANALYSIS.R') # File containing functions
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,species) %>% filter(species!='noinvspp')
 head(df)
-View(df1)
+
 # only include species with non-zero cover in at least plot and present in at least 10% of plots
 df1<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumcov=sum(avg.cover)) %>% 
   filter((park!='ACAD'& nonzero>0.1 & sumcov>0)|(park=='ACAD'& species=='Rhamnus frangula')) %>% 
-  filter(park!='SAHI' & park!='WOTR') %>% filter(!(park=="MONO" & species=='Ampelopsis brevipedunculata')) %>%
-  filter(!(park=='MONO' & species=="Celastrus orbiculatus")) %>% 
-  droplevels() %>% ungroup(park,species)
+  filter(park!='SAHI' & park!='WOTR') %>% droplevels() %>% ungroup(park,species)
+
+# Check to see how many plots and species there are per park. If more species than plots, drop least abundant
+numplots<-df1 %>% group_by(park,cycle) %>% summarise(numplots=length(unique(plot_name))) %>% 
+  filter(cycle==3) %>% select(-cycle)
+
+numspp<-df1 %>% group_by(park,cycle) %>% summarise(numspp=length(unique(species))) %>% 
+  filter(cycle==3) %>% select(-cycle)
+
+compare<-merge(numplots,numspp, by='park')
+compare<-compare %>% mutate(nums=numplots/numspp) %>% filter(nums<2)
+head(compare) #
+
+# 7 parks have more species than plots, so I need to drop the least abundant based on plot freq
+park_drops<-c('ANTI','FRHI','GWMP','MIMA','MONO','ROCR','WEFA')
+
+spp_keep<-function(df, park_name, numspp){
+  parkdf<-df %>% filter(park==park_name) %>% group_by(species) %>% 
+    summarise(numplots=sum(plot.freq)) %>% arrange(-numplots) %>% slice(1:numspp) %>% 
+    select(species)
+  parkdf_spp<-as.character(parkdf$species)
+  parkspp<-df %>% filter(park==park_name & species %in% parkdf_spp) %>% droplevels() 
+  return(parkspp)
+}
+
+ANTI_spp<-spp_keep(df1, 'ANTI', 3)
+FRHI_spp<-spp_keep(df1, 'FRHI', 10)
+GWMP_spp<-spp_keep(df1, 'GWMP', 10)
+MIMA_spp<-spp_keep(df1, 'MIMA', 10)
+MONO_spp<-spp_keep(df1, 'MONO', 3)
+ROCR_spp<-spp_keep(df1, 'ROCR', 9)
+WEFA_spp<-spp_keep(df1, 'WEFA', 3)
+
+df2<-df1 %>% filter(!park %in% park_drops) %>% droplevels() # drop the parks with too many species, 
+#Add parks back with rbind
+
+df3<-rbind(df2, ANTI_spp, FRHI_spp, GWMP_spp, MIMA_spp, MONO_spp, ROCR_spp, WEFA_spp)
+# factor levels get ordered wrong, which throws labeling off. Next line fixes that.
+df3<-df3 %>% mutate(park=as.character(park), species=as.character(species), plot_name=as.character(plot_name)) %>% 
+  arrange(park, plot_name, cycle, species) %>% 
+  mutate(park=factor(park), species=factor(species), plot_name=factor(plot_name))
 
 # Too many species and not enough plots/df for MONO, so had to remove the least abundant spp.
-table(df1$species,df1$park)
-parkspp<-df1 %>% select(park,species) %>% unique()
-
-df_park<-df1 %>% group_by(park) %>% nest()
+df_park<-df3 %>% group_by(park) %>% nest()
 
 df_park<-df_park %>% mutate(data=map(data,
                     ~mutate(.x,nlev=length(unique(species)))))
 
-park_names2<-rep(levels(df1$park),each=2) # make vector of park names
+park_names2<-rep(levels(df3$park),each=2) # make vector of park names
 park_names2
+
+parkspp<-df3 %>% select(park,species) %>% unique()
 
 #-------------------------------
 ## ---- AC_S_diag ----
@@ -88,7 +125,7 @@ results_AC_S2<-results_AC_S %>% mutate(coef=ifelse(grepl('cycle',term), 'Slope',
                                         grepl('cycle:species',term) ~ str_remove(term,'cycle:species'), 
                                         grepl('species',term) ~str_remove(term,'species')
                                                      )) 
-results_AC_S3<-results_AC_S2 %>% filter(!is.na(species)) %>% arrange(park,species)
+results_AC_S3<-results_AC_S2 %>% filter(!is.na(species)) %>%  arrange(park,species) 
 
 first_alphas<-parkspp %>% arrange(park,species) %>% group_by(park) %>% summarise(species=first(species))
 
@@ -96,10 +133,12 @@ results_AC_S_first<-results_AC_S2 %>% filter(term %in% terms) %>% select(-specie
 results_AC_S_first2<-merge(results_AC_S_first, first_alphas, by='park')
 
 results_AC_S_comb<-rbind(results_AC_S3,results_AC_S_first2)
-nrow(results_AC_S_comb) #552
+nrow(results_AC_S_comb) #434
 
 results_AC_S_comb<-results_AC_S_comb %>% arrange(park,species,coef) %>% 
   mutate(estimate=round(estimate,3))
+
+head(results_AC_S_comb)
 
 ##  ---- model_results_AC_S ---- 
 #-----------------------------------
@@ -109,6 +148,7 @@ by_park_coefs_AC_S<-by_park_AC_S %>%
   mutate(conf.coef=map(model,~case_bootstrap(.x, fn=fixed_fun, B=1000, resample=c(TRUE,FALSE))) %>% 
   set_names(df_park$park)) %>% 
   select(conf.coef)  
+park_names2
 
 coefs_AC_S<-by_park_coefs_AC_S %>% 
   mutate(bootCIs=map(conf.coef, ~bootCI(boot.t=.x$t))) %>% unnest(bootCIs) %>% 
@@ -125,19 +165,24 @@ coefs2_AC_S2<-coefs2_AC_S %>% mutate(coef=ifelse(grepl('cycle',term), 'Slope', '
                                       species2=case_when(
                                         grepl('cycle.species',term) ~ str_remove(term,'cycle.species'), 
                                         grepl('species',term) ~str_remove(term,'species'), 
-                                        term %in% terms2 ~'AAAfirst_alpha'), park2=park) %>% 
-  arrange(park2,species2) %>% select(-park)
+                                        term %in% terms2 ~'AAAfirst_alpha'), park2=factor(park)) %>% 
+  arrange(park2,species2) %>%  select(-park)
 
 parkspp2<-data.frame(rbind(parkspp,parkspp)) %>% arrange(park,species)
 
 coefs2_AC_S3<-cbind(coefs2_AC_S2,parkspp2)
 
-coefs2_AC_S_comb<-coefs2_AC_S3 %>% select(park,term,species,coef,lower,upper) %>% arrange(park,species,coef)
+coefs2_AC_S_comb<-coefs2_AC_S3 %>% select(park,term,species,coef,lower,upper) %>% 
+    arrange(park,species,coef) 
 
-results2_AC_S<-merge(results_AC_S_comb,coefs2_AC_S_comb,by=c('park','species', 'coef'), all.x=T, all.y=T)
+View(coefs2_AC_S_comb)
+
+results2_AC_S<-merge(results_AC_S_comb, coefs2_AC_S_comb,by=c('park','species', 'coef'), all.x=T, all.y=T)
 
 results3_AC_S<- results2_AC_S %>% group_by(park,coef) %>% 
   mutate(rank=dense_rank(species))
+
+View(results2_AC_S)
 
 results3b_AC_S<-results3_AC_S %>% filter(rank==1) %>% droplevels() %>% 
   mutate(est.corfac=estimate) %>% select(park,coef,est.corfac)
@@ -156,7 +201,7 @@ results_final_AC_S<-results5_AC_S %>%
     sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,species,coef,estimate,lower,upper,sign) 
   
-#View(results_final_AC_S)
+View(results_final_AC_S)
 
 write.csv(results_final_AC_S,'./results/results_avecov-by_species-coefs_NP.csv', row.names=F)
 
@@ -181,7 +226,10 @@ resp_AC_S<-resp_AC_S %>% mutate(park=as.factor(park_names2),
   select(park,type,everything()) 
 # puts labels on boot output
 
-resp2_AC_S<-resp_AC_S %>% gather(gcyc,ci,c1:c3_Vincetoxicum) %>% spread(type,ci) %>% na.omit()
+resp2_AC_S<-resp_AC_S %>% gather(gcyc,ci,c1:c3_Lythrum.salicaria) %>% spread(type,ci) %>% na.omit() #%>% 
+#  arrange(park, gcyc)
+
+#View(resp2_AC_S)
 # reshapes data so lower and upper CIs in separate columns
 # CHECK COLUMN ORDER WHEN NEW PARKS ADDED.
 
@@ -189,12 +237,17 @@ resp_mean_AC_S<-by_park_resp_AC_S %>%
   mutate(boot.mean=map(boot.t,~bootMean(.x))) %>% 
   select(boot.mean) %>% unnest()
 
-labelsCI_AC_S<-df1 %>% na.omit() %>% group_by(park,cycle,species) %>% 
-  summarise(numplots=n(),lat.rank=first(lat.rank)) %>% droplevels() #na.omit removes NCRN shrubs and COLO C1
+View(by_park_resp_AC_S[[1]])
 
+labelsCI_AC_S<-df3 %>% na.omit() %>% group_by(park,cycle,species) %>% 
+  summarise(numplots=n(),lat.rank=first(lat.rank)) %>% droplevels() #%>% 
+  #arrange(park,cycle,species)#na.omit removes NCRN shrubs and COLO C1
+
+#tail(labelsCI_AC_S)
 respCIs_AC_S<-data.frame(labelsCI_AC_S[,c('cycle','species','numplots','lat.rank')],
   resp2_AC_S,resp_mean_AC_S) %>% select(park,everything())
 
+View(respCIs_AC_S)
 table(respCIs_AC_S$park,respCIs_AC_S$cycle)
 
 colnames(respCIs_AC_S)<-c('park','cycle','species','numplots','lat.rank','group','lower','upper','mean')

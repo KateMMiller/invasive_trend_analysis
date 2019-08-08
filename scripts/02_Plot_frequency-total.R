@@ -99,7 +99,7 @@ results2_PF_T<-merge(results_PF_T,coefs2_PF_T,by=c('park', 'coef'))
 results_final_PF_T<-results2_PF_T %>% 
   mutate(estimate=round(estimate,4),
     lower=round(lower,4),
-    upper=round(upper,4), s
+    upper=round(upper,4), 
     sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,coef,estimate,lower,upper,sign) 
 

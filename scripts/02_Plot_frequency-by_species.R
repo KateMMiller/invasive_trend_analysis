@@ -8,7 +8,6 @@ library(lme4) # for glmer with logistic regression
 library(modelr) #for handling multiple models in tidyverse
 library(broom.mixed)# for better model summary tables than default in nlme
 library(prediction) # for find_data(model) function
-library(beepr) # indicates when model run is finished
 
 options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers 
 
@@ -22,21 +21,63 @@ glmerCtlList <- glmerControl(optimizer=c("bobyqa","Nelder_Mead"),
 #-----------------------------
 # Read in data.frame without guids in first two columns
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv")#[,-c(1,2)]
-df<- df %>% arrange(park,plot_name,cycle,species) %>% filter(species!='noinvspp')
+df<- df %>% arrange(park,plot_name,cycle,species) %>% filter(species!='noinvspp') %>% unique()
 
 # only include speciess with at least 10% of plots with that species and <90% of all
 df1<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n()) %>% 
-  filter((park!='ACAD'& between(nonzero,0.1,0.9))|(park=='ACAD'& species=='Rhamnus frangula')) %>% 
+  filter((between(nonzero,0.1,0.9))) %>% 
   filter(park!='SAHI' & park!='WOTR') %>%
   droplevels() %>% ungroup(park,species) 
-parkspp<-df1 %>% select(park,species) %>% unique()
 
-df_park<-df1 %>% group_by(park) %>% nest()
+# Check to see how many plots and species there are per park. If more species than plots, drop least abundant
+numplots<-df1 %>% group_by(park,cycle) %>% summarise(numplots=length(unique(plot_name))) %>% 
+  filter(cycle==3) %>% select(-cycle)
+
+numspp<-df1 %>% group_by(park,cycle) %>% summarise(numspp=length(unique(species))) %>% 
+  filter(cycle==3) %>% select(-cycle)
+
+compare<-merge(numplots,numspp, by='park')
+compare<-compare %>% mutate(nums=numplots/numspp) %>% filter(nums<2)
+compare
+
+# 7 parks have more species than plots, so I need to drop the least abundant based on plot freq
+park_drops<-c('ANTI','FRHI','GWMP','MIMA','MONO','ROCR','WEFA')
+
+spp_keep<-function(df, park_name, numspp){
+  parkdf<-df %>% filter(park==park_name) %>% group_by(species) %>% 
+    summarise(numplots=sum(plot.freq)) %>% arrange(-numplots) %>% slice(1:numspp) %>% 
+    select(species)
+  parkdf_spp<-as.character(parkdf$species)
+  parkspp<-df %>% filter(park==park_name & species %in% parkdf_spp) %>% droplevels() 
+  return(parkspp)
+}
+
+ANTI_spp<-spp_keep(df1, 'ANTI', 3)
+FRHI_spp<-spp_keep(df1, 'FRHI', 10)
+GWMP_spp<-spp_keep(df1, 'GWMP', 10)
+MIMA_spp<-spp_keep(df1, 'MIMA', 10)
+MONO_spp<-spp_keep(df1, 'MONO', 3)
+ROCR_spp<-spp_keep(df1, 'ROCR', 9)
+WEFA_spp<-spp_keep(df1, 'WEFA', 3)
+
+df2<-df1 %>% filter(!park %in% park_drops) %>% droplevels() # drop the parks with too many species, 
+#Add parks back with rbind
+
+df3<-rbind(df2, ANTI_spp, FRHI_spp, GWMP_spp, MIMA_spp, MONO_spp, ROCR_spp, WEFA_spp)
+df3<-df3 %>% mutate(plot.freq= ifelse(plot.freq>1,1,plot.freq))
+# factor levels get ordered wrong, which throws labeling off. Next line fixes that.
+df3<-df3 %>% mutate(park=as.character(park), species=as.character(species), plot_name=as.character(plot_name)) %>% 
+  arrange(park, plot_name, cycle, species) %>% 
+  mutate(park=factor(park), species=factor(species), plot_name=factor(plot_name))
+
+parkspp<-df3 %>% select(park,species) %>% unique()
+
+df_park<-df3 %>% group_by(park) %>% nest()
 
 df_park<-df_park %>% mutate(data=map(data,
                     ~mutate(.x,nlev=length(unique(species)))))
 
-park_names2<-rep(levels(df1$park),each=2) # make vector of park names
+park_names2<-rep(levels(df3$park),each=2) # make vector of park names
 park_names2
 
 #-----------------------------------
@@ -102,7 +143,7 @@ results_PF_S_comb<-results_PF_S_comb %>% arrange(park,species,coef) %>%
 #-----------------------------------
 by_park_coefs_PF_S<-by_park_PF_S %>% 
   mutate(conf.coef=map(model,~bootMer(.x,FUN=fixed_fun,nsim=1000, parallel='snow',
-    ncpus=10)) %>% set_names(df_park$park)) %>% 
+    ncpus=8)) %>% set_names(df_park$park)) %>% 
   select(conf.coef)  
 
 coefs_PF_S<-by_park_coefs_PF_S %>% 
@@ -165,7 +206,7 @@ results_final_PF_S<-results5_PF_S %>%
          sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,species,coef,estimate,lower,upper,sign) 
 
-View(results_final_PF_S)
+#View(results_final_PF_S)
 
 write.csv(results_final_PF_S,'./results/results_PFreq-by_species-coefs.csv', row.names=F)
 

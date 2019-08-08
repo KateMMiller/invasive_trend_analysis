@@ -21,26 +21,62 @@ source('./scripts/functions_for_ANALYSIS.R') # File containing functions
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,species) %>% filter(species!='noinvspp')
 head(df)
-View(df1)
+
 # only include species with at least 10% of plots with that guild
-df2<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumfreq=sum(qpct.freq)) %>% 
+df1<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumfreq=sum(qpct.freq)) %>% 
   filter((park!='ACAD'& nonzero>0.1 & sumfreq>0)|(park=='ACAD'& species=='Rhamnus frangula')) %>% 
   filter(park!='SAHI' & park!='WOTR') %>% 
   droplevels() %>% ungroup(park,species)
 
-df1<-df2 %>% group_by(park, species) %>% mutate(qpres.sum=sum(quad.freq)/(12*n())) %>% 
-  filter(ifelse(park=='MONO', qpres.sum>0.02, qpres.sum>0)) #%>% mutate(nlev=length(unique(species)))
 
-parkspp<-df1 %>% select(park,species) %>% unique()
+# Check to see how many plots and species there are per park. If more species than plots, drop least abundant
+numplots<-df1 %>% group_by(park,cycle) %>% summarise(numplots=length(unique(plot_name))) %>% 
+  filter(cycle==3) %>% select(-cycle)
 
-df_park<-df1 %>% group_by(park) %>% nest()
+numspp<-df1 %>% group_by(park,cycle) %>% summarise(numspp=length(unique(species))) %>% 
+  filter(cycle==3) %>% select(-cycle)
+
+compare<-merge(numplots,numspp, by='park')
+compare<-compare %>% mutate(nums=numplots/numspp) %>% filter(nums<2)
+
+# 7 parks have more species than plots, so I need to drop the least abundant based on plot freq
+park_drops<-c('ANTI','FRHI','GWMP','MIMA','MONO','ROCR','WEFA')
+
+spp_keep<-function(df, park_name, numspp){
+  parkdf<-df %>% filter(park==park_name) %>% group_by(species) %>% 
+    summarise(numplots=sum(plot.freq)) %>% arrange(-numplots) %>% slice(1:numspp) %>% 
+    select(species)
+  parkdf_spp<-as.character(parkdf$species)
+  parkspp<-df %>% filter(park==park_name & species %in% parkdf_spp) %>% droplevels() 
+  return(parkspp)
+}
+
+ANTI_spp<-spp_keep(df1, 'ANTI', 3)
+FRHI_spp<-spp_keep(df1, 'FRHI', 10)
+GWMP_spp<-spp_keep(df1, 'GWMP', 10)
+MIMA_spp<-spp_keep(df1, 'MIMA', 10)
+MONO_spp<-spp_keep(df1, 'MONO', 3)
+ROCR_spp<-spp_keep(df1, 'ROCR', 9)
+WEFA_spp<-spp_keep(df1, 'WEFA', 3)
+
+df2<-df1 %>% filter(!park %in% park_drops) %>% droplevels() # drop the parks with too many species, 
+#Add parks back with rbind
+
+df3<-rbind(df2, ANTI_spp, FRHI_spp, GWMP_spp, MIMA_spp, MONO_spp, ROCR_spp, WEFA_spp)
+# factor levels get ordered wrong, which throws labeling off. Next line fixes that.
+df3<-df3 %>% mutate(park=as.character(park), species=as.character(species), plot_name=as.character(plot_name)) %>% 
+  arrange(park, plot_name, cycle, species) %>% 
+  mutate(park=factor(park), species=factor(species), plot_name=factor(plot_name))
+
+parkspp<-df3 %>% select(park,species) %>% unique()
+
+df_park<-df3 %>% group_by(park) %>% nest()
 
 df_park<-df_park %>% mutate(data=map(data,
                                      ~mutate(.x,nlev=length(unique(species)))))
 
-park_names2<-rep(levels(df1$park),each=2) # make vector of park names
+park_names2<-rep(levels(df3$park),each=2) # make vector of park names
 park_names2
-
 
 #-------------------------------
 ## ---- QF_S_diag ----
@@ -188,7 +224,7 @@ resp_mean_QF_S<-by_park_resp_QF_S %>%
   mutate(boot.mean=map(boot.t,~bootMean(.x))) %>% 
   select(boot.mean) %>% unnest()
 
-labelsCI_QF_S<-df1 %>% na.omit() %>% group_by(park,cycle,species) %>% 
+labelsCI_QF_S<-df3 %>% na.omit() %>% group_by(park,cycle,species) %>% 
   summarise(numplots=n(),lat.rank=first(lat.rank)) %>% droplevels() #na.omit removes NCRN shrubs and COLO C1
 
 respCIs_QF_S<-data.frame(labelsCI_QF_S[,c('cycle','species','numplots','lat.rank')],

@@ -18,7 +18,7 @@ rmRejected<-function(df){
 
 #-----------------------------
 # Connect to backend forest database and import data and lookup tables for the queries below
-importData(odbc='NETN_Field')
+importData(odbc='NETNFVM')
 quadsamp$numHerbPlots<-apply(quadsamp[,c(15:22)], 1, sum)
 
 park.plots2<-joinLocEvent(from=2007, to=2018, QAQC=F,rejected=F,locType='VS',output='short') 
@@ -48,9 +48,9 @@ names(quadscov)
 
 quadscov1<-quadscov %>% mutate(`Euonymus alatus`=`Euonymus alatus`+ Euonymus, 
                                Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
-                               `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
+                               `Lonicera`= `Lonicera - Exotic`+ `Lonicera morrowii`,
                                Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
-                        select(-`Euonymus`,
+                        select(-`Euonymus`,-`Lonicera - Exotic`,
                                -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
                                 -`Vincetoxicum nigrum`)
 
@@ -60,9 +60,9 @@ quadsfreq<-quads3 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.f
 
 quadsfreq1<-quadsfreq %>% mutate(`Euonymus alatus`=`Euonymus alatus`+ Euonymus, 
                                  Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
-                                 `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
+                                 `Lonicera=`= `Lonicera - Exotic`+ `Lonicera morrowii`,
                                  Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
-                          select(-`Euonymus`,
+                          select(-`Euonymus`, -`Lonicera - Exotic`,
                                  -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
                                  -`Vincetoxicum nigrum`)
 
@@ -93,9 +93,9 @@ names(netnspp6)
 
 netnspp7<-netnspp6 %>% mutate(`Euonymus alatus`=`Euonymus alatus`+ Euonymus, 
                               Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
-                              `Lonicera - Exotic`= `Lonicera - Exotic`+ `Lonicera morrowii`,
+                              `Lonicera`= `Lonicera - Exotic`+ `Lonicera morrowii`,
                               Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
-                       select(-`Euonymus`,
+                       select(-`Euonymus`, -`Lonicera - Exotic`,
                               -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
                               -`Vincetoxicum nigrum`)
 netnspp8<-netnspp7 %>% gather('Latin_Name','plotfreq',-(Event_ID:cycle))
@@ -117,13 +117,19 @@ spp_comb2<-sppcomb %>% mutate(plot.freq=plotfreq, avg.cover=avgcov, quad.freq=av
 spp_comb3<- merge(spp_comb2, invlist, by="Latin_Name",all.x=T)
 spp_comb_final<- spp_comb3 %>% mutate(species=ifelse(Accepted=='Y', paste0(Latin_Name), paste0(Accepted.Name))) %>% 
   select(Unit_Code, Plot_Name, cycle, species, plot.freq, avg.cover, quad.freq, qpct.freq) # replaced old with new names
+names(spp_comb_final)
+
+sppcomb_check<-spp_comb_final %>% group_by(Plot_Name, species) %>% 
+  summarise(numplots=length(plot.freq)) %>% filter(numplots>3)
 
 write.csv(spp_comb_final, './data/NETN/NETN_invasive_species_data.csv', row.names=FALSE)
 
 sppcomb2<-sppcomb %>% group_by(Unit_Code,cycle,Latin_Name) %>% 
                       summarise(avgcov=mean(avgcov), avgfreq=mean(avgfreq), 
                                 plotfreq=sum(plotfreq), numplots=n())
-head(sppcomb2)
+
+sppcomb_check<-sppcomb %>% group_by(Plot_Name, Latin_Name) %>% 
+  summarise(numplots=length(plotfreq)) %>% filter(numplots>3)
 
 write.csv(sppcomb2,'./data/NETN/NETN_park-level_invasive_species_summary.csv', row.names=FALSE)
 
