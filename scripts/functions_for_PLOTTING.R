@@ -77,7 +77,7 @@ plotCoverGuild<-function(df){
 # Species by park plots for invasive cover trends
 coefPlot<- function(df, yrange=c(-10,30), ylabel){
   spplabs<-data.frame(table(df$species))
-  spplabs<-spplabs %>% filter(Freq>1) %>% droplevels()
+  spplabs<-spplabs %>% filter(Freq>0) %>% droplevels()
   spplabs$axistick<-lag(spplabs$Freq,k=1)
   spplabs[1,3]<-0
   spplabs$axisticks<-cumsum(spplabs$axistick)+1
@@ -103,7 +103,7 @@ coefPlot<- function(df, yrange=c(-10,30), ylabel){
           scale_x_reverse(name=NULL, breaks=unique(df2$axisticks), labels=levels(df2$species))+ 
           #geom_label_repel(labels=spplabs$species, box.padding=0.4)+
           #geom_dl(aes(label=park), method=list(dl.trans(x=x+0.25),dl.combine("last.points"), cex=0.7, colour='black'))+
-          geom_text(data=df2,aes(label=park, y=ifelse(upper>0,upper+3,lower-0.3)), # avecov as upper+2 lower-0.3
+          geom_text(data=df2,aes(label=park, y=ifelse(upper>0,upper+3.5,lower-0.3)), # avecov as upper+2 lower-0.3
                     nudge_x=-0.1, vjust=0.5, hjust=1, colour='black', cex=3.5 )
   )
 }
