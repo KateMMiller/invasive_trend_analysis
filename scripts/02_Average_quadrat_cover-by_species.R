@@ -201,7 +201,7 @@ results_final_AC_S<-results5_AC_S %>%
     sign=ifelse(lower>0 | upper<0,1,0)) %>% 
   select(park,species,coef,estimate,lower,upper,sign) 
   
-View(results_final_AC_S)
+head(results_final_AC_S)
 
 write.csv(results_final_AC_S,'./results/results_avecov-by_species-coefs_NP.csv', row.names=F)
 
@@ -225,8 +225,9 @@ resp_AC_S<-resp_AC_S %>% mutate(park=as.factor(park_names2),
   type=rep(c('lower','upper'),times=length(levels(park)))) %>% 
   select(park,type,everything()) 
 # puts labels on boot output
+names(resp_AC_S)
 
-resp2_AC_S<-resp_AC_S %>% gather(gcyc,ci,c1:c3_Lythrum.salicaria) %>% spread(type,ci) %>% na.omit() #%>% 
+resp2_AC_S<-resp_AC_S %>% gather(gcyc,ci,c1:c3_Phalaris.arundinacea) %>% spread(type,ci) %>% na.omit() #%>% 
 #  arrange(park, gcyc)
 
 #View(resp2_AC_S)
@@ -237,8 +238,6 @@ resp_mean_AC_S<-by_park_resp_AC_S %>%
   mutate(boot.mean=map(boot.t,~bootMean(.x))) %>% 
   select(boot.mean) %>% unnest()
 
-View(by_park_resp_AC_S[[1]])
-
 labelsCI_AC_S<-df3 %>% na.omit() %>% group_by(park,cycle,species) %>% 
   summarise(numplots=n(),lat.rank=first(lat.rank)) %>% droplevels() #%>% 
   #arrange(park,cycle,species)#na.omit removes NCRN shrubs and COLO C1
@@ -246,9 +245,6 @@ labelsCI_AC_S<-df3 %>% na.omit() %>% group_by(park,cycle,species) %>%
 #tail(labelsCI_AC_S)
 respCIs_AC_S<-data.frame(labelsCI_AC_S[,c('cycle','species','numplots','lat.rank')],
   resp2_AC_S,resp_mean_AC_S) %>% select(park,everything())
-
-View(respCIs_AC_S)
-table(respCIs_AC_S$park,respCIs_AC_S$cycle)
 
 colnames(respCIs_AC_S)<-c('park','cycle','species','numplots','lat.rank','group','lower','upper','mean')
 

@@ -20,7 +20,6 @@ source('./scripts/functions_for_ANALYSIS.R') # File containing functions
 # Read in data.frame without guids in first two columns
 df<-read.csv("./data/NETN-MIDN-ERMN-NCRN_species_invasives.csv")#[,-c(1,2)]
 df<- df %>% arrange(park,plot_name,cycle,species) %>% filter(species!='noinvspp')
-head(df)
 
 # only include species with at least 10% of plots with that guild
 df1<-df %>% group_by(park,species) %>% mutate(nonzero=sum(plot.freq,na.rm=T)/n(), sumfreq=sum(qpct.freq)) %>% 
@@ -133,7 +132,7 @@ results_QF_S_first<-results_QF_S2 %>% filter(term %in% terms) %>% select(-specie
 results_QF_S_first2<-merge(results_QF_S_first, first_alphas, by='park')
 
 results_QF_S_comb<-rbind(results_QF_S3,results_QF_S_first2)
-nrow(results_QF_S_comb) #386
+nrow(results_QF_S_comb) #434
 
 results_QF_S_comb<-results_QF_S_comb %>% arrange(park,species,coef) %>% 
   mutate(estimate=round(estimate,3))
@@ -216,7 +215,8 @@ resp_QF_S<-resp_QF_S %>% mutate(park=as.factor(park_names2),
   select(park,type,everything()) 
 # puts labels on boot output
 
-resp2_QF_S<-resp_QF_S %>% gather(gcyc,ci,c1:c3_Vincetoxicum) %>% spread(type,ci) %>% na.omit()
+names(resp_QF_S)
+resp2_QF_S<-resp_QF_S %>% gather(gcyc,ci,c1:c3_Phalaris.arundinacea) %>% spread(type,ci) %>% na.omit()
 # reshapes data so lower and upper CIs in separate columns
 # CHECK COLUMN ORDER WHEN NEW PARKS ADDED.
 
@@ -247,5 +247,5 @@ respCIs_final_QF_S<-respCIs_final_QF_S %>%
          park=reorder(park,-lat.rank)) %>% 
   arrange(lat.rank,species,cycle)
 
-#View(respCIs_final_QF_S)
+View(respCIs_final_QF_S)
 write.csv(respCIs_final_QF_S,"./results/results_qfreq-by_species-response_NP.csv")

@@ -18,6 +18,7 @@ rmRejected<-function(df){
 
 #-----------------------------
 # Connect to backend forest database and import data and lookup tables for the queries below
+#importCSV("D:/NETN/collaborators/Schliefer/forest_csvs")
 importData(odbc='NETNFVM')
 quadsamp$numHerbPlots<-apply(quadsamp[,c(15:22)], 1, sum)
 
@@ -60,7 +61,7 @@ quadsfreq<-quads3 %>% select(Event_ID,Unit_Code,Plot_Name,cycle,Latin_Name,avg.f
 
 quadsfreq1<-quadsfreq %>% mutate(`Euonymus alatus`=`Euonymus alatus`+ Euonymus, 
                                  Ligustrum= Ligustrum + `Ligustrum obtusifolium`+ `Ligustrum vulgare`,
-                                 `Lonicera=`= `Lonicera - Exotic`+ `Lonicera morrowii`,
+                                 `Lonicera`= `Lonicera - Exotic`+ `Lonicera morrowii`,
                                  Vincetoxicum= `Vincetoxicum nigrum` + Vincetoxicum) %>% 
                           select(-`Euonymus`, -`Lonicera - Exotic`,
                                  -`Ligustrum obtusifolium`, -`Ligustrum vulgare`, - `Lonicera morrowii`, 
