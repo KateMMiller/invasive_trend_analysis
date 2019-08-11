@@ -165,17 +165,17 @@ dev.off()
 AC_S_coef<-read.csv("./results/results_avecov-by_species-coefs_NP.csv")
 
 AC_S_sign<-AC_S_coef %>% filter(sign==1 & coef=='Slope') %>% 
-  mutate(species= as.factor(ifelse(species=='Lonicera','Lonicera spp. (Exotic)', paste(species)))) %>% 
-  droplevels() 
+  mutate(species= as.factor(ifelse(species=='Lonicera'| species=='Lonicera morrowii','Lonicera spp. (Exotic)', paste(species)))) %>% 
+  droplevels() %>% group_by(species) %>% mutate(numsig=sum(sign)) %>% ungroup() %>%
+  mutate(species= fct_reorder(species, numsig, .desc=T)) %>% arrange(species)  
+ 
 head(AC_S_sign)
+sort(unique(AC_S_sign$species))#14
 
-length(unique(AC_S_sign$species)) #18 
-
-#colrand=distinctColorPalette(k=nlevels(AC_S_sign$species))
-#colrkeep<-colrand
-#colrkeep
-             # AILALT,   ALIPET,    BERTHU,   CELORB,    LONJAP,    LONEXO,    MICVIM,    ROSMUL,    RUBPHO
-colrkeep<-c("#0000ff", "#00cc00", "#990000", "#ff9900", "#ff3300", "#996633",  "#e6e600", "#ff6600", "#cc0099")
+            # MICVIM,   BERTHU,   LONJAP,   ALLPET,    ROSMUL,   LONEXO,   AILALT,   CELORB,  RUBPHO,  ACEPLA, 
+colrkeep<- c("#ffe400","#cc0000","#cc00cc","#00cc00","#ff0000","#ffa366","#0000ff","#e65c00","#cc0099","#0680f9", 
+            # ELAUMB, GLEHED, HEDHEL, PERLON
+            "#ff66cc", "#006600", "#ff9933", "#339933")
 
 coefPlot(AC_S_sign, ylabel='Average Cover/ Cycle') # Shows species that are significant in at least 2 parks.
 
@@ -188,21 +188,22 @@ dev.off()
 # Quad Freq Species Coef Plots
 #-----------------------------------
 QF_S_coef<-read.csv("./results/results_qfreq-by_species-coefs_NP.csv")
-QF_S_sign<-QF_S_coef %>% filter(sign==1 & coef=='Slope') %>% droplevels()
+
+QF_S_sign<-QF_S_coef %>% filter(sign==1 & coef=='Slope') %>% droplevels() %>% group_by(species) %>% mutate(numsig=sum(sign)) %>% ungroup() %>%
+  mutate(species= fct_reorder(species, numsig, .desc=T)) %>% arrange(species)  
 
 length(unique(QF_S_sign$species)) #11
-colrand=distinctColorPalette(k=nlevels(QF_S_sign$species))
-colrkeep<-colrand
-colrkeep
+sort(unique(QF_S_sign$species))
+             #MICVIM,   ALLPET,    LONJAP,  AILALT,   ROSMUL,     RUBPHO,    BERTHU,  CELORB,
+colrkeep<-c("#ffe400", "#00cc00", "#cc00cc","#0000ff","#ff0000", "#cc0099", "#cc0000","#e65c00",
+            # ACEPLA,    CARIMP,   EUOFOR
+            "#0680f9",  "#66ff33", "#ff0066")
 
-           # AILALT,     ALIPET,    BERTHU,    CARIMP,  CELORB,   LONJAP,    MICVIM,    ROSMUL,    RUBPHO
-colrkeep<-c("#0000ff", "#00cc00", "#990000", "#009933", "#ff9900", "#ff3300", "#e6e600", "#ff6600", "#cc0099")
-
-coefPlot(QF_S_sign, yrange=c(-20,50), ylabel='Quadrat Frequency/ Cycle') # Shows species that are significant in at least 2 parks.
+coefPlot(QF_S_sign, yrange=c(-20,55), ylabel='Quadrat Frequency/ Cycle') # Shows species that are significant in at least 2 parks.
 
 
 tiff(file='./results/figures/qfreq_species_slopes.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
-coefPlot(QF_S_sign, yrange=c(-20,50),ylabel='Quadrat Frequency/ Cycle')
+coefPlot(QF_S_sign, yrange=c(-20,55),ylabel='Quadrat Frequency/ Cycle')
 dev.off()
 
 

@@ -7,6 +7,7 @@ invdf<-read.csv('./data/NETN-MIDN-ERMN-NCRN_species_invasives_status.csv')
 inv3<-invdf %>% filter(cycle==3) %>% droplevels()
 table(inv3$species, inv3$plot.freq) # number of species on list that aren't present in C3 plots
 
+View(invdf)
 # Lump difficult to ID species
 sort(unique(inv3$species))
 Lonicera_spp<-c('Lonicera', 'Lonicera maackii', 'Lonicera morrowii', 'Lonicera tatartica')
@@ -21,7 +22,7 @@ inv3<-inv3 %>% mutate(sppgroup= case_when(species %in% Lonicera_spp ~ 'Lonicera'
                                           TRUE ~ paste0(species)))
 
 length(unique(inv3$plot_name)) #1479 plots
-
+View(inv3)
 park_info<-unique(read.csv('./data/NETN-MIDN-ERMN-NCRN_total_invasives.csv')[,c('park','lat.rank')])
 
 inv_park<-inv3 %>% group_by(network, park, sppgroup) %>%  
@@ -90,7 +91,7 @@ head(totinv)
 
 guildinv<-read.csv('./data/NETN-MIDN-ERMN-NCRN_guild_invasives.csv')
 head(guildinv)
-View(totinv)
+head(totinv)
 
 parktot<-totinv %>% filter(cycle==3) %>% group_by(network, park, lat.rank) %>% 
   summarise(plot.freq=sum(plot.freq), plot.pfreq=round(100*sum(plot.freq)/n(),2), avg.cover=round(mean(avg.cover),2), quad.pfreq=round(mean(qpct.freq),2), totplots=n()) %>% 
@@ -105,4 +106,4 @@ parkguild<-guildinv %>% filter(cycle==3) %>% group_by(network, park, lat.rank, g
 
 write.csv(parkguild, './results/status/park-level_summaries_guild.csv', row.names=F)
 
-View(parktot)
+head(parktot)
