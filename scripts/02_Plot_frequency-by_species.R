@@ -204,7 +204,10 @@ results_final_PF_S<-results5_PF_S %>%
   select(park,species,coef,estimate,lower,upper,sign) 
 
 head(results_final_PF_S)
-results_final_PF_S<-results_final_PF_S %>% mutate(exp_est=exp(estimate), exp_low=exp(lower),exp_high=exp(upper))
+results_final_PF_S<-results_final_PF_S %>% mutate(exp_est=exp(estimate), exp_low=exp(lower),exp_high=exp(upper)) %>% 
+  filter(park!='FRSP') %>% droplevels()
+
+# FRSP didn't converge and confints did not contain the slope. Deleting that from the data before saving file.
 
 write.csv(results_final_PF_S,'./results/results_PFreq-by_species-coefs.csv', row.names=F)
 

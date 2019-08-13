@@ -14,7 +14,7 @@ options("scipen"=100, "digits"=4) # keeps TSN numbers as numbers
 source('./scripts/functions_for_ANALYSIS.R') # File containing functions
 
 glmerCtlList <- glmerControl(optimizer=c("bobyqa","Nelder_Mead"),
-  optCtrl=list(maxfun=2e10000)) # set controls for glmer so longer before times out
+  optCtrl=list(maxfun=2e100000)) # set controls for glmer so longer before times out
 
 #-----------------------------------
 ## ---- readdata_PF_T ----
@@ -96,12 +96,17 @@ coefs2_PF_T$coef<-rep(c('Slope','Intercept'))
 
 results2_PF_T<-merge(results_PF_T,coefs2_PF_T,by=c('park', 'coef'))
 
+# Several parks did not converge because too many plots were 1 and not enough were 0, these
+# include FONE and GEWA. Their coefs are non-sensical, so I'm deleting them from the results
+
 results_final_PF_T<-results2_PF_T %>% 
   mutate(estimate=round(estimate,4),
     lower=round(lower,4),
     upper=round(upper,4), 
     sign=ifelse(lower>0 | upper<0,1,0)) %>% 
-  select(park,coef,estimate,lower,upper,sign) 
+  select(park,coef,estimate,lower,upper,sign) %>% 
+  filter(park!='FONE') %>% filter(park!="GEWA") %>% droplevels()
+
 
 write.csv(results_final_PF_T,'./results/results_PFreq-total-coefs.csv', row.names=F)
 
