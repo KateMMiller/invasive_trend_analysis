@@ -203,7 +203,7 @@ PF_S_sign<-PF_S_coef %>% filter(sign==1 & coef=='Slope') %>% group_by(species) %
 
 
              # CELORB,   MICVIM,    ROSMUL,   RUBPHO,    BERTHU,    EUOALA,     AILALT      ALLPET,  LONEXO,     
-colrkeep<- c("#e65c00", "#ffe400", "#ff0000", "#cc0099", "#cc0000", "#DC143C", "#0000ff", "#00cc00", "#ffa366",
+colrkeep<- c("#e65c00", "#ffe400", "#ff0000", "#cc0099", "#cc0000", "#bf00ff", "#0000ff", "#00cc00", "#ffa366",
              #ACEPLA,   BERVUL     CARIMP      LONJAP    PERLONG,   PHOVIL,   PRUAVI
              "#0680f9", "#FF00FF", "#66ff33", "#cc00cc", "#339933", "#1E90FF", "#4674b9")
 
