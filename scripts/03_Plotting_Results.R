@@ -2,10 +2,10 @@
 # Invasive trend analysis: Plotting Results
 #-----------------------------------------------
 library(tidyverse)
-library(colorRamps)
+#library(colorRamps)
 library(cowplot)
 library(directlabels)
-library(randomcoloR)
+#library(randomcoloR)
 
 source('./scripts/functions_for_PLOTTING.R')
 ppi<-300
@@ -115,22 +115,6 @@ tiff(file='./results/figures/qfreq_guild_NP.tiff',units='px',width=12*ppi,height
 plot_qfreq_g
 dev.off()
 
-#-----------------------------------------------
-# Quadrat Richness - by Guild
-#-----------------------------------------------
-#qrich_guild<-read.csv("./results/results_qrich-by_guild-response_NP.csv")
-
-#qrich_guild<- qrich_guild %>% arrange(lat.rank) %>% 
-#  mutate(cycle2=as.factor(cycle2),sign=as.factor(sign))
-
-#qrich_guild$park<-reorder(qrich_guild$park,-qrich_guild$lat.rank)
-
-#plot_qrich_g<-plotQRichParkGuild(qrich_guild)
-
-#tiff(file='./results/figures/qrich_guild_NP.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
-#plot_qrich_g
-#dev.off()
-
 #----------------------------------
 # Plot frequency by Guild
 #----------------------------------
@@ -210,25 +194,25 @@ dev.off()
 #-----------------------------------
 # Plot Freq Species Coef Plots
 #-----------------------------------
+# Species by park plots for invasive cover trends
 PF_S_coef<-read.csv("./results/results_PFreq-by_species-coefs.csv")
-PF_S_sign<-PF_S_coef %>% filter(sign==1 & coef=='Slope') %>% droplevels()
+names(PF_S_coef)
+
+PF_S_sign<-PF_S_coef %>% filter(sign==1 & coef=='Slope') %>% group_by(species) %>% mutate(numsig=sum(sign)) %>% ungroup() %>%
+  mutate(species= fct_reorder(species, numsig, .desc=T)) %>% arrange(species)  %>% ungroup() %>% droplevels()
+
+
+             # CELORB,   MICVIM,    ROSMUL,   RUBPHO,    BERTHU,    EUOALA,     AILALT      ALLPET,  LONEXO,     
+colrkeep<- c("#e65c00", "#ffe400", "#ff0000", "#cc0099", "#cc0000", "#DC143C", "#0000ff", "#00cc00", "#ffa366",
+             #ACEPLA,   BERVUL     CARIMP      LONJAP    PERLONG,   PHOVIL,   PRUAVI
+             "#0680f9", "#FF00FF", "#66ff33", "#cc00cc", "#339933", "#1E90FF", "#4674b9")
+
+
+PFreqPlot(PF_S_sign, ylabel='by Species')
+
+tiff(file='./results/figures/Plot_freq_species_odd.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
+PFreqPlot(PF_S_sign, ylabel='by Species')
+dev.off()
+
 #list.files("./results")
-
-length(unique(PF_S_sign$species)) #18 
-
-colrand=distinctColorPalette(k=nlevels(PF_S_sign$species))
-colrkeep<-colrand
-colrkeep
-#colrkeep<-c("#0099ff", "#9334EC", "#D2E749", "#D681D1", "#76A15C", "#CA5CE3", "#C0E6B7", "#DBC0AC", "#73D4E1",
-#            "#D86538", "#62E197", "#E1B648", "#E64DB8")#, "#9E93D9")#, "#72E6CC", "#E19F78", "#6DE654", "#BDE981",
-#"#E36078", "#6D68DC", "#BCCAE9", "#D3E4DE", "#5AA7DF", "#E4B4D6", "#74989B", "#A67085")
-
-
-coefPlot(PF_S_sign, yrange=c(-5,10)) # Shows species that are significant in at least 2 parks.
-
-# This approach doesn't seem to be useful for the logistic models
-
-#tiff(file='./results/figures/qfreq_species_slopes.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
-#coefPlot(QF_S_sign, yrange=c(-20,50))
-#dev.off()
 

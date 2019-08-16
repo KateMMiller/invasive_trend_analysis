@@ -74,7 +74,7 @@ plotCoverGuild<-function(df){
       labs(x='Cycle', y='Avg. Quadrat % Cover')+scale_x_continuous(breaks=c(1,2,3)))
 } #
 
-# Species by park plots for invasive cover trends
+# Species by park coefficient plots for invasive cover trends
 coefPlot<- function(df, yrange=c(-10,30), ylabel){
   spplabs<-data.frame(table(df$species))
   spplabs<-spplabs %>% filter(Freq>0) %>% droplevels()
@@ -87,8 +87,6 @@ coefPlot<- function(df, yrange=c(-10,30), ylabel){
   df2<-df2 %>% arrange(species,park) %>% droplevels()
   df2$axis<-as.numeric(row.names(df2))
   df2$sign<-as.factor(df2$sign)
-  #dfsign<-df2 %>% mutate(park=ifelse(sign==1,paste(park),NA))
-  #colrkeep=distinctColorPalette(k=nlevels(df2$species))
   print(ggplot(df2, aes(x=axis, y=estimate, fill=species, labels=df2$species)) +
           geom_hline(yintercept=0, lwd=1, color='DimGrey') +
           geom_errorbar(aes(ymin=lower, ymax=upper, colour=species), width=1.5, size=1, show.legend = F)+
@@ -97,16 +95,43 @@ coefPlot<- function(df, yrange=c(-10,30), ylabel){
           scale_color_manual(values=colrkeep)+ theme_bw()+
           theme(axis.text.y=element_text(angle=45, size=11),
                 axis.title.x=element_text(margin=margin(5,0,1,0)))+
-          
-          #theme(panel.grid.major=element_blank())+#, panel.grid.minor=element_blank())+  
           coord_flip() +  ylab(paste0('Slope: ',ylabel))+ ylim(yrange)+
           scale_x_reverse(name=NULL, breaks=unique(df2$axisticks), labels=levels(df2$species))+ 
-          #geom_label_repel(labels=spplabs$species, box.padding=0.4)+
-          #geom_dl(aes(label=park), method=list(dl.trans(x=x+0.25),dl.combine("last.points"), cex=0.7, colour='black'))+
           geom_text(data=df2,aes(label=park, y=ifelse(upper>0,upper+3.5,lower-0.3)), # avecov as upper+2 lower-0.3
                     nudge_x=-0.1, vjust=0.5, hjust=1, colour='black', cex=3.5 )
   )
 }
+
+# Species by park odds plots for invasive cover plot frequency
+PFreqPlot<- function(df,  ylabel){
+  spplabs<-data.frame(table(df$species))
+  spplabs$axistick<-lag(spplabs$Freq,k=1)
+  spplabs[1,3]<-0
+  spplabs$axisticks<-cumsum(spplabs$axistick)+1
+  spplabs<-spplabs[,c('Var1','axisticks')]
+  colnames(spplabs)<-c('species', 'axisticks')
+  df2<-merge(df, spplabs, by='species',all.y=T)
+  df2<-df2 %>% arrange(species,park) %>% droplevels() %>% 
+    mutate(axis=as.numeric(row.names(.)), species=as.factor(species))
+  
+  print(ggplot(df2, aes(x=axis, y=exp_est, fill=as.factor(species), group=species, labels=df2$species)) +
+          geom_hline(yintercept=1, lwd=1, color='DimGrey') +
+          geom_hline(yintercept=0, lwd=1, color='grey')+
+          geom_errorbar(aes(ymin=exp_low, ymax=exp_high, colour=species), width=1.5, size=1, show.legend = F)+
+          geom_point(stroke=1, size=2, colour='black', shape=21)+ 
+          scale_fill_manual(values=c(colrkeep), guide=F)+
+          scale_color_manual(values=colrkeep)+ theme_bw()+
+          theme(axis.text.y=element_text(angle=45, size=11),
+                axis.title.x=element_text(margin=margin(5,0,1,0)))+
+          coord_flip() +  ylab(paste0('Odds of Plot Occurence ', ylabel))+ 
+          scale_y_continuous(breaks=c(0,1,10,20,30,40), labels=c(0,1,10, 20, 30, 40))+
+          scale_x_reverse(name=NULL, breaks=unique(df2$axisticks), labels=levels(df2$species))+ 
+          geom_text(data=df2,aes(label=park, y=ifelse(exp_high>0,exp_high+2,exp_low-0.2)),
+                    nudge_x=-0.1, vjust=0.5, hjust=1, colour='black', cex=3.5 )+
+          geom_hline(yintercept=1, lty=2, color='black')
+  )
+}
+
 
 # Park-level plot for invasive cover by species
 plotCoverParkSpecies<-function(df, parkname, yrange=c(-10,40), yaxis=NULL){ 
