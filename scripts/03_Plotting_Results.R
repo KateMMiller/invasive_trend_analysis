@@ -216,3 +216,60 @@ dev.off()
 
 #list.files("./results")
 
+#---------------------------------
+# Summarizing number of increasing or decreasing trends
+#---------------------------------
+library(tidyverse)
+list.files('./results')
+ac_t_coef<-read.csv('./results/results_avecov-total-coefs_NP.csv')
+ac_g_coef<-read.csv('./results/results_avecov-by_guild-coefs_NP.csv')
+ac_s_coef<-read.csv('./results/results_avecov-by_species-coefs_NP.csv')
+
+qf_t_coef<-read.csv('./results/results_qfreq-total-coefs_NP.csv')
+qf_g_coef<-read.csv('./results/results_qfreq-by_guild-coefs_NP.csv')
+qf_s_coef<-read.csv('./results/results_qfreq-by_species-coefs_NP.csv')
+
+pf_t_coef<-read.csv('./results/results_PFreq-total-coefs.csv')
+pf_g_coef<-read.csv('./results/results_PFreq-by_guild-coefs.csv')
+pf_s_coef<-read.csv('./results/results_PFreq-by_species-coefs.csv')
+
+# Create full park list with a column for sign. trends in total, guild, species for each metric
+park_list<-ac_t_coef %>% select(park) %>% unique()
+
+# Pull out only significant slopes
+ac_t_slope<-ac_t_coef %>% filter(coef=='Slope' & sign==1) %>% mutate(group='Total', metric='avecov') %>% 
+  select(park, group, metric, estimate)
+qf_t_slope<-qf_t_coef %>% filter(coef=='Slope' & sign==1) %>% mutate(group='Total', metric='qfreq') %>% 
+  select(park, group, metric, estimate)
+pf_t_slope<-pf_t_coef %>% filter(coef=='Slope' & sign==1) %>% mutate(group='Total', metric='pfreq') %>% 
+  select(park, group, metric, estimate)
+
+ac_g_slope<-ac_g_coef %>% filter(coef=='Slope' & sign==1) %>% mutate(metric='avecov') %>% 
+  select(park, guild, metric, estimate)
+qf_g_slope<-qf_g_coef %>% filter(coef=='Slope' & sign==1) %>% mutate(metric='qfreq') %>% 
+  select(park, guild, metric, estimate)
+pf_g_slope<-pf_g_coef %>% filter(coef=='Slope' & sign==1) %>% mutate(metric='pfreq') %>% 
+  select(park, guild, metric, estimate)
+
+ac_s_slope<-ac_s_coef %>% filter(coef=='Slope' & sign==1) %>% mutate(metric='avecov') %>% 
+  select(park, species, metric, estimate)
+qf_s_slope<-qf_s_coef %>% filter(coef=='Slope' & sign==1) %>% mutate(metric='qfreq') %>% 
+  select(park, species, metric, estimate)
+pf_s_slope<-pf_s_coef %>% filter(coef=='Slope' & sign==1 )%>% mutate(metric='pfreq') %>% 
+  select(park, species, metric, estimate)
+
+comb_tot<-rbind(ac_t_slope, qf_t_slope, pf_t_slope)
+colnames(comb_tot)<-c('park','group','metric','estimate')
+comb_guild<-rbind(ac_g_slope, qf_g_slope, pf_g_slope)
+colnames(comb_guild)<-c('park','group','metric','estimate')
+comb_spp<-rbind(ac_s_slope, qf_s_slope, pf_s_slope)
+colnames(comb_spp)<-c('park','group','metric','estimate')
+
+comb_res<-rbind(comb_tot,comb_guild,comb_spp)
+View(comb_res)
+comb_res2<-comb_res %>% mutate(sign_inc= ifelse(estimate>0,1,0), sign_dec=ifelse(estimate<0,1,0)) %>% 
+  group_by(park) %>% summarise(num_inc=sum(sign_inc), num_dec=sum(sign_dec)) 
+
+comb_res_final<-left_join(park_list, comb_res2, by='park') 
+comb_res_final[,2:3][is.na(comb_res_final[,2:3])]<-0
+write.csv(comb_res_final, './results/results_park_trend_summary.csv', row.names=F)
