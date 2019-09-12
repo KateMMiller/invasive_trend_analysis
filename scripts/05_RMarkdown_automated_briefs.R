@@ -6,9 +6,9 @@ library(purrr)
 library(knitr)
 library(markdown)
 library(rmarkdown)
-#setwd('C:/NETN/Monitoring_Projects/Forest_Health/manuscripts/Invasive_trend_analysis')
+setwd('C:/NETN/Monitoring_Projects/Forest_Health/manuscripts/Invasive_trend_analysis')
 
-sites<-read.csv('./RMarkdown/site_info_NETN-MIDN-ERMN-NCRN.csv')
+sites<-read.csv('./RMarkdown_HTML/site_info_NETN-MIDN-ERMN-NCRN.csv')
 sites<-sites %>% filter(park_code!="SHEN") %>% droplevels() #SHEN not included
 
 getParkList<-function(netcode){
@@ -23,13 +23,13 @@ ncrn<-getParkList('NCRN')
 ncbn<-getParkList('NCBN')
 
 render_reports<-function(park_list){
-  filepath=c('C:/NETN/Monitoring_Projects/Forest_Health/manuscripts/Invasive_trend_analysis/RMarkdown/')
+  filepath=c('C:/NETN/Monitoring_Projects/Forest_Health/manuscripts/Invasive_trend_analysis/RMarkdown_HTML/')
   network<-sites %>% filter(park_code == park_list) %>% select(network_code) %>% 
     droplevels() %>% mutate(network_code=as.character(network_code))
-  rmarkdown::render(input=paste0(filepath,'Template_Invasive_Trend_Brief.Rmd'),
+  rmarkdown::render(input=paste0(filepath,'NPS_Invasive_Brief_HTML.Rmd'),
                     params=list(park_code=park_list),
-                    output_file=paste0("Invasive_Trend_Brief_",network,"_", park_list,".pdf"), 
-                    output_dir=paste0(filepath,'reports')
+                    output_file=paste0("Invasive_Trend_Brief_",network,"_", park_list,".html"), 
+                    output_dir=paste0(filepath,'html_reports')
     )
 }
 

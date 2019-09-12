@@ -97,7 +97,7 @@ coefPlot<- function(df, yrange=c(-10,30), ylabel){
                 axis.title.x=element_text(margin=margin(5,0,1,0)))+
           coord_flip() +  ylab(paste0('Slope: ',ylabel))+ ylim(yrange)+
           scale_x_reverse(name=NULL, breaks=unique(df2$axisticks), labels=levels(df2$species))+ 
-          geom_text(data=df2,aes(label=park, y=ifelse(upper>0,upper+3.5,lower-0.3)), # avecov as upper+2 lower-0.3
+          geom_text(data=df2,aes(label=park, y=ifelse(upper>0,upper+2,lower-0.3)), # avecov as upper+2 lower-0.3
                     nudge_x=-0.1, vjust=0.5, hjust=1, colour='black', cex=3.5 )
   )
 }

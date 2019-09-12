@@ -156,8 +156,8 @@ AC_S_sign<-AC_S_coef %>% filter(sign==1 & coef=='Slope') %>%
 head(AC_S_sign)
 sort(unique(AC_S_sign$species))#14
 
-            # MICVIM,   BERTHU,   LONJAP,   ALLPET,    ROSMUL,   LONEXO,   AILALT,   CELORB,  RUBPHO,  ACEPLA, 
-colrkeep<- c("#ffe400","#cc0000","#cc00cc","#00cc00","#ff0000","#ffa366","#0000ff","#e65c00","#cc0099","#0680f9", 
+            # MICVIM,   BERTHU,   LONJAP,   ALLPET,    ROSMUL,   LONEXO,  CELORB,   RUBPHO,   ACEPLA, AILALT,      
+colrkeep<- c("#ffe400","#cc0000","#cc00cc","#00cc00","#ff0000","#ffa366","#e65c00","#cc0099", "#0680f9", "#0000ff", 
             # ELAUMB, GLEHED, HEDHEL, PERLON
             "#ff66cc", "#006600", "#ff9933", "#339933")
 
@@ -166,7 +166,9 @@ coefPlot(AC_S_sign, ylabel='Average Cover/ Cycle') # Shows species that are sign
 tiff(file='./results/figures/avgcov_species_slopes.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
 coefPlot(AC_S_sign, ylabel='Average Cover/ Cycle')
 dev.off()
-
+jpeg(file='./results/figures/avgcov_species_slopes.jpg',units='px',width=12*ppi,height=9*ppi,res=300)
+coefPlot(AC_S_sign, ylabel='Average Cover/ Cycle')
+dev.off()
 
 #-----------------------------------
 # Quad Freq Species Coef Plots
