@@ -7,7 +7,7 @@ output:
       before_body: header_manual.html
       after_body: footer.html
 params:
-  park_code: ACAD
+  park_code: FRSP
 ---
 ```{r site_info, echo=F, include=F, cache=F}
 library(tidyverse)
@@ -89,12 +89,11 @@ Present in over 30% of the plots and 85% of the parks in this study, Japanese st
 Overall, increasing trends in invasive abundance were much more common than decreasing trends. In 30 out of the 37 parks analyzed for trends, we detected at least one significant increasing trend in invasive abundance, and 22 parks had five or more significant increases in invasive abundance. Japanese stiltgrass (<i>Microstegium vimineum</i>) had the most number of significant increases, with increases in plot frequency in five parks, quadrat frequency in twelve parks, and average cover in twelve parks. Invasive shrubs also increased in multiple parks, particularly in the northern parks in this study, where dense thickets can occur (Figure 2). The few signifcant declines that we detected were typically herbaceous species or Japanese stiltgrass (<i>Microstegium vimineum</i>), and they were often met with a roughly equivalent increase by another species and/or guild, especially invasive shrubs. 
 </div>
 
-
 <div class="column-left-fig1">
 Only two parks in our study showed overall declines in invasive abundance: PRWI and MABI. In both parks, only significant negative trends in invasive abundance were detected, and both parks had relatively low invasive abundance at the start of monitoring. Three additional parks had low invasive abundance throughout the study period and did not have any significant increasing trends: ACAD, Colonial National Historical Park (COLO), SAGA. While invasive abundance is relatively low in these five parks, the species that are present, such as Japanese barberry (<i>Berberis thunbergii</i>) and Japanese stiltgrass (<i>Microstegium vimineum</i>), occupy very high abundance and have expanded rapidly in other parks in our study.
 </div>
 <div class="column-right-fig1">
-<div style="float:right;position:relative; top:5px;padding:5px 5px 10px 5px;">
+<div style="float:right;position:relative; top:-5px;padding:5px 5px 10px 5px;">
 <div class='figcap'>
 ```{r, echo=F}
 knitr::kable(sppstatus, escape=F, caption='Table 2. Top ten most common species across parks.', format='html',
@@ -233,18 +232,20 @@ no_trends <- unique(c(rbind(tot_results, guild_results, spp_results)))
 `r if(length(no_trends)==0){paste0('There were no significant trends in total invasive abundance, guild-level abundance, or species level abundance in ', site$park, '. ')}``r if(length(no_trends)>2){paste0('There were a total of ', length(no_trends), ' significant trends in invasive abundance in ', site$park,'. ')}`
 `r if(length(no_trends!=0) & length(tot_results)==0){paste0(' There were no significant trends in total invasive abundance.')}``r if(length(no_trends!=0) & length(tot_results)!=0){paste0(tot_results, collapse=' ')}``r if(length(no_trends!=0) & length(guild_results)==0){paste0('There were no significant guild-level trends.')}``r if(length(no_trends!=0) & length(guild_results)!=0){paste0(guild_results, collapse=' ')}` `r if(length(no_trends!=0) & length(spp_results)==0){paste0(' There were no significant species-level trends.')}``r if(length(no_trends!=0) & length(spp_results)!=0){paste0(spp_results, collapse=' ')}`
 </div>
+
+<div class="column-left-fig1">
+<h2><b>Conclusions</b></h2>
+Japanese stiltgrass was the most aggressive invasive species in our study, particularly in the mid-Atlantic region, and should be a top priority for invasive management. Invasive shrubs were also common in eastern parks, were the most often increasing invasive species in the northern region of our study, and also appeared to outcompete Japanese stiltgrass in some cases. Given the added risks to human health from tick-borne diseases in invasive shrub thickets, invasive shrubs as a guild should be a high management priority.
+
+The high and often increasing abundance of invasives that we documented in the majority of the parks in our study poses significant threats to the long-term condition of eastern park forests. While many of the parks in our study have active invasive management, few have the base-funded and dedicated permanent staff needed for effective invasive management. Reversing these trends will be challenging, costly, and require a longer term commitment to manage invasives and reduce the underlying drivers contributing to the invasive problem. Without such efforts, invasive problems in parks will only get worse. Just as parks are working to overcome deferred maintenance of infrastructure, deferred management of natural resources requires equal attention to ensure the long-term health of park forests.
+</div>
 <div class="column-right-fig1">
-<div style="float:right;position:relative; top:5px; padding:5px 5px 5px 10px;">
+<div style="float:right;position:relative;top:-5px;right:1px; padding:5px 5px 5px 10px;">
 <div class='figcap'>
 ```{r, echo=F, out.width='450px', fig.cap='<p> Figure 2. Invasive shrub thicket in Morristown National Historical Park.', fig.pos='h'}
 knitr::include_graphics('MORR_019_20170529_barberry.jpg')
 ```
 </div></div></div>
-
-<h2><b>Conclusions</b></h2>
-Japanese stiltgrass was the most aggressive invasive species in our study, particularly in the mid-Atlantic region, and should be a top priority for invasive management. Invasive shrubs were also common in eastern parks, were the most often increasing invasive species in the northern region of our study, and also appeared to outcompete Japanese stiltgrass in some cases. Given the added risks to human health from tick-borne diseases in invasive shrub thickets, invasive shrubs as a guild should be a high management priority.
-
-The high and often increasing abundance of invasives that we documented in the majority of the parks in our study poses significant threats to the long-term condition of eastern park forests. While many of the parks in our study have active invasive management, few have the base-funded and dedicated permanent staff needed for effective invasive management. Reversing these trends will be challenging, costly, and require a longer term commitment to manage invasives and reduce the underlying drivers contributing to the invasive problem. Without such efforts, invasive problems in parks will only get worse. Just as parks are working to overcome deferred maintenance of infrastructure, deferred management of natural resources requires equal attention to ensure the long-term health of park forests.
 
 <h2><b>More Information</b></h2>
 More information about the Eastern Forest Working Group can be found on the <a href="https://www.researchgate.net/project/Forest-Monitoring-in-National-Park-Units-of-the-Eastern-USA">EFWG Research Gate Project</a>. More information on network-specific monitoring can be found on the <a href="`r contact$website`">`r site$network_code` website</a>, or by contacting: `r contact$name1`, `r contact$email1`, or  `r contact$name2`, `r contact$email2`.

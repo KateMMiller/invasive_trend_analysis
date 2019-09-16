@@ -1,0 +1,204 @@
+---
+output: 
+    html_document:
+      css: custom_styles.css
+      fig_caption: yes
+      includes:
+        in_header: "header_manual.html"
+params:
+  network_code: NCBN
+---
+
+Northeast Coastal and Barrier Network {.tabset .tabset-fade}
+------------------------------------
+### Background 
+<h3><b>Background</h3></b>
+```{r site_info, echo=F, include=F, cache=F}
+library(tidyverse)
+siteinfo<-read.csv('site_info_NETN-MIDN-ERMN-NCRN.csv')
+site<-siteinfo %>% filter(network_code==params$network_code) %>% droplevels()
+network<-as.character(unique(site$network))
+contactinfo<-read.csv('contact_info.csv')
+contact<-contactinfo %>% filter(network_code==network) %>% droplevels()
+source('trend_summary_functions.R')
+```
+<div style="float:right;position:relative;top:45px;padding:5px 5px 20px 10px;margin:0px 5px 20px 5px">
+```{r, echo=F, out.width='450px', fig.cap='<p> Figure 1. Map of Eastern Forest Working Group parks', fig.pos='h'}
+knitr::include_graphics('map_of_parks.jpg')
+```
+</div>
+
+```{r, results='asis', echo=F}
+cat(readLines('Background.html'))
+```
+This document summarizes results for the `r unique(site$network)` (`r unique(site$network_code)`).
+
+### Methods
+<h3><b>Methods</h3></b>
+```{r, results='asis', echo=F}
+cat(readLines('Methods.html'))
+```
+This document summarizes results for the `r unique(site$network)` (`r unique(site$network_code)`).
+
+### Results {.tabset}
+
+#### Region
+<div style="float:right;position:relative;padding:5px 5px 20px 10px;margin:0px 5px 20px 5px">
+```{r, echo=F}
+figcap<-paste0('Table 1. Park-level summary of invasive abundance. Plot Freq. is the percent of plots in a park with at least one invasive species. Quad. % Freq. is the average percent of quadrats per plot with an invasive species. Avg. % Cover is the average cover of all invasive species monitored in a given park.')
+
+knitr::kable(parkstatus[,-3], caption=figcap, format='html', align=c('c','c','c','c','c','c'),
+             col.names=c('Rank','Network','Park','Plot % Freq.','Quad. % Freq.', 'Avg. % Cov')) %>% 
+             kableExtra::kable_styling(full_width=F, position='float_right', bootstrap_options=c('striped','bordered','condensed')) %>% 
+             kableExtra::column_spec(1, width="0.2in") %>% 
+             kableExtra::column_spec(2, width="0.4in") %>% 
+             kableExtra::column_spec(4:6, width="0.65in") %>%
+             kableExtra::column_spec(3, width="0.65in")
+```
+</div>
+
+<h3>Status</h3>
+Invasive species are widespread in eastern national parks. In 35 out of the 39 parks in this study, more than half of the plots in a given park had at least one invasive species, and in ten parks every plot had at least one invasive species present. In 21 out of 39 parks, at least one invasive species occurred in 50% or more of the quadrats in each plot. Average cover of invasives was over 20% in 10 out of 39 parks. The 5 parks with the highest invasive abundance were Monocacy National Battlefield (MONO), Antietam National Battlefield (ANTI), Friendship Hill National Historic Site (FRHI), Morristown National Historical Park (MORR), and Chesapeake and Ohio Canal National Historical Park (CHOC), with each park averaging more than 30% invasive cover (Table 1). The least invaded parks were Acadia National Park (ACAD), Marsh-Billings-Rockefeller National Historical Park (MABI), Fredericksburg \& Spotsylvania National Military Park (FRSP), Prince William Forest Park (PRWI), and Saint-Gaudens National Historical Park (SAGA), with all but SAGA averaging less than 1\% invasive cover.
+
+Present in over 30% of the plots and 85% of the parks in this study, Japanese stiltgrass (<i>Microstegium vimineum</i>) was the most widespread invasive species in our study (Table 2). After Japanese stiltgrass, invasive shrubs/woody vines were the most abundant invasives, including Japanese barberry (<i>Berberis thunbergii</i>), Japanese honeysuckle (<i>Lonicera japonica</i>), multiflora rose (<i>Rosa multiflora</i>), and wineberry (<i>Rubus phoenicolasius</i>). 
+<br>
+
+<h3>Trends</h3>
+Overall, increasing trends in invasive abundance were much more common than decreasing trends. In 30 out of the 37 parks analyzed for trends, we detected at least one significant increasing trend in invasive abundance, and 22 parks had five or more significant increases in invasive abundance. Japanese stiltgrass (<i>Microstegium vimineum</i>) had the most number of significant increases, with increases in plot frequency in five parks, quadrat frequency in twelve parks, and average cover in twelve parks. Invasive shrubs also increased in multiple parks, particularly in the northern parks in this study, where dense thickets can occur. The few signifcant declines that we detected were typically herbaceous species or Japanese stiltgrass (<i>Microstegium vimineum</i>), and they were often met with a roughly equivalent increase by another species and/or guild, especially invasive shrubs. 
+
+Only two parks in our study showed overall declines in invasive abundance: PRWI and MABI. In both parks, only significant negative trends in invasive abundance were detected, and both parks had relatively low invasive abundance at the start of monitoring. Three additional parks had low invasive abundance throughout the study period and did not have any significant increasing trends: ACAD, Colonial National Historical Park (COLO), SAGA. While invasive abundance is relatively low in these five parks, the species that are present, such as Japanese barberry (<i>Berberis thunbergii</i>) and Japanese stiltgrass (<i>Microstegium vimineum</i>), occupy very high abundance and have expanded rapidly in other parks in our study.
+
+<div style="float:right;position:relative;padding:5px 5px 20px 10px;margin:0px 5px 20px 5px">
+```{r, echo=F}
+knitr::kable(sppstatus,caption='Table 2. Top ten most common species across parks.', format='html',
+             col.names=c('Latin Name','Common','% of Plots','% of Parks'), align=c('l','l','c','c')) %>% 
+             kableExtra::kable_styling(full_width=F, position='float_right', 
+                                       bootstrap_options=c('striped', 'bordered', 'condensed')) %>% 
+             kableExtra::column_spec(1, italic=T) %>% 
+             kableExtra::column_spec(3:4, width="0.651in") 
+```
+</div>
+
+#### COLO
+<h3>Status</h3>
+```{r, echo=F, include=F}
+library(tidyverse)
+site1<-siteinfo %>% filter(park_code=="COLO") %>% droplevels()
+park_code<-as.character(site1$park_code)
+
+# Park-level status
+parkinv<-totinv %>% filter(park==park_code) %>% droplevels()
+
+parkguild<-guildinv %>% filter(park==park_code) %>% droplevels() %>% 
+  arrange(-avg.cover,-quad.pfreq,-plot.pfreq) %>% slice(1) 
+
+parkspp<-allparkspp %>% filter(park==park_code) %>% 
+  arrange(-avg.cover, -qpct.freq, -plot.pfreq) %>% 
+  select(sppgroup, Common, plot.pfreq, qpct.freq, avg.cover) %>% slice(1:5)
+
+tot_results<-totinv_to_sentences("COLO")
+guild_results<-guild_to_sentences("COLO")
+spp_results<-spp_to_sentences("COLO")
+no_trends <- length(unique(tot_results))+ length(unique(guild_results))+
+  length(unique(spp_results))
+```
+In the most recent cycle in `r site1$park_code`, at least one invasive species was detected in `r format(round(parkinv$plot.pfreq,1),nsmall=1)`\% of plots, and on average, `r format(round(parkinv$quad.pfreq,1),nsmall=1)`\% of quadrats had at least one invasive species and average total invasive cover was `r ifelse(parkinv$avg.cover< 0.01, paste0("<0.01"), format(round(parkinv$avg.cover, 1),nsmall=1))`\% (Table 1). The `r str_to_lower(parkguild$guild)` guild was the most abundant guild in `r site1$park_code`, found in `r format(round(parkguild$plot.pfreq,1),nsmall=1)`\% of plots, and averaging `r format(round(parkguild$quad.pfreq,1), nsmall = 1)`\% quadrat frequency, and `r ifelse(parkguild$avg.cover< 0.01, paste0("<0.01"),paste0(format(round(parkguild$avg.cover,1),nsmall=1)))`\% quadrat cover. The most abundant invasive species in `r site1$park_code` was `r paste0(parkspp$Common[1])` (<i>`r paste0(parkspp$sppgroup[1])`</i>), occurring in `r format(round(parkspp$plot.pfreq[1],1),nsmall=1)`\% of plots, and averaging `r format(round(parkspp$avg.cover[1],1),nsmall=1)` \% cover. `r str_to_sentence(paste0(parkspp$Common[2]))` (<i>`r paste0(parkspp$sppgroup[2])`</i>) was the second most abundant invasive species, occurring in `r parkspp$plot.pfreq[2]`\% of plots, and averaging `r parkspp$avg.cover[2]` \% cover. The next three most abundant invasive species in `r site1$park_code` were `r paste0(parkspp$Common[3])` (<i>`r paste0(parkspp$sppgroup[3])`</i>), `r paste0(parkspp$Common[4])` (<i>`r paste0(parkspp$sppgroup[4])`</i>), and `r paste0(parkspp$Common[5])` (<i>`r paste0(parkspp$sppgroup[5])`</i>).
+
+<h3>Trends</h3>
+`r if(length(no_trends)==0){paste0('There were no significant trends in total invasive abundance, guild-level abundance, or species level abundance in ', park_code, '. ')}``r if(length(no_trends)>2){paste0('There were a total of ', length(no_trends), ' significant trends in invasive abundance in ', park_code,'. ')}`
+`r if(length(no_trends!=0) & length(tot_results)==0){paste0(' There were no significant trends in total invasive abundance.')}``r if(length(no_trends!=0) & length(tot_results)!=0){paste0(tot_results, collapse=' ')}``r if(length(no_trends!=0) & length(guild_results)==0){paste0('There were no significant guild-level trends.')}``r if(length(no_trends!=0) & length(guild_results)!=0){paste0(guild_results, collapse=' ')}` `r if(length(no_trends!=0) & length(spp_results)==0){paste0(' There were no significant species-level trends.')}``r if(length(no_trends!=0) & length(spp_results)!=0){paste0(spp_results, collapse=' ')}`
+
+#### GEWA
+<h3>Status</h3>
+```{r, echo=F, include=F}
+library(tidyverse)
+site1<-siteinfo %>% filter(park_code=="GEWA") %>% droplevels()
+park_code<-as.character(site1$park_code)
+
+# Park-level status
+parkinv<-totinv %>% filter(park==park_code) %>% droplevels()
+
+parkguild<-guildinv %>% filter(park==park_code) %>% droplevels() %>% 
+  arrange(-avg.cover,-quad.pfreq,-plot.pfreq) %>% slice(1) 
+
+parkspp<-allparkspp %>% filter(park==park_code) %>% 
+  arrange(-avg.cover, -qpct.freq, -plot.pfreq) %>% 
+  select(sppgroup, Common, plot.pfreq, qpct.freq, avg.cover) %>% slice(1:5)
+
+tot_results<-totinv_to_sentences("GEWA")
+guild_results<-guild_to_sentences("GEWA")
+spp_results<-spp_to_sentences("GEWA")
+no_trends <- length(unique(tot_results))+ length(unique(guild_results))+
+  length(unique(spp_results))
+```
+In the most recent cycle in `r site1$park_code`, at least one invasive species was detected in `r format(round(parkinv$plot.pfreq,1),nsmall=1)`\% of plots, and on average, `r format(round(parkinv$quad.pfreq,1),nsmall=1)`\% of quadrats had at least one invasive species and average total invasive cover was `r ifelse(parkinv$avg.cover< 0.01, paste0("<0.01"), format(round(parkinv$avg.cover, 1),nsmall=1))`\% (Table 1). The `r str_to_lower(parkguild$guild)` guild was the most abundant guild in `r site1$park_code`, found in `r format(round(parkguild$plot.pfreq,1),nsmall=1)`\% of plots, and averaging `r format(round(parkguild$quad.pfreq,1), nsmall = 1)`\% quadrat frequency, and `r ifelse(parkguild$avg.cover< 0.01, paste0("<0.01"),paste0(format(round(parkguild$avg.cover,1),nsmall=1)))`\% quadrat cover. The most abundant invasive species in `r site1$park_code` was `r paste0(parkspp$Common[1])` (<i>`r paste0(parkspp$sppgroup[1])`</i>), occurring in `r format(round(parkspp$plot.pfreq[1],1),nsmall=1)`\% of plots, and averaging `r format(round(parkspp$avg.cover[1],1),nsmall=1)` \% cover. `r str_to_sentence(paste0(parkspp$Common[2]))` (<i>`r paste0(parkspp$sppgroup[2])`</i>) was the second most abundant invasive species, occurring in `r parkspp$plot.pfreq[2]`\% of plots, and averaging `r parkspp$avg.cover[2]` \% cover. The next three most abundant invasive species in `r site1$park_code` were `r paste0(parkspp$Common[3])` (<i>`r paste0(parkspp$sppgroup[3])`</i>), `r paste0(parkspp$Common[4])` (<i>`r paste0(parkspp$sppgroup[4])`</i>), and `r paste0(parkspp$Common[5])` (<i>`r paste0(parkspp$sppgroup[5])`</i>).
+
+<h3>Trends</h3>
+`r if(length(no_trends)==0){paste0('There were no significant trends in total invasive abundance, guild-level abundance, or species level abundance in ', park_code, '. ')}``r if(length(no_trends)>2){paste0('There were a total of ', length(no_trends), ' significant trends in invasive abundance in ', park_code,'. ')}`
+`r if(length(no_trends!=0) & length(tot_results)==0){paste0(' There were no significant trends in total invasive abundance.')}``r if(length(no_trends!=0) & length(tot_results)!=0){paste0(tot_results, collapse=' ')}``r if(length(no_trends!=0) & length(guild_results)==0){paste0('There were no significant guild-level trends.')}``r if(length(no_trends!=0) & length(guild_results)!=0){paste0(guild_results, collapse=' ')}` `r if(length(no_trends!=0) & length(spp_results)==0){paste0(' There were no significant species-level trends.')}``r if(length(no_trends!=0) & length(spp_results)!=0){paste0(spp_results, collapse=' ')}`
+
+#### SAHI
+<h3>Status</h3>
+```{r, echo=F, include=F}
+library(tidyverse)
+site1<-siteinfo %>% filter(park_code=="SAHI") %>% droplevels()
+park_code<-as.character(site1$park_code)
+
+# Park-level status
+parkinv<-totinv %>% filter(park==park_code) %>% droplevels()
+
+parkguild<-guildinv %>% filter(park==park_code) %>% droplevels() %>% 
+  arrange(-avg.cover,-quad.pfreq,-plot.pfreq) %>% slice(1) 
+
+parkspp<-allparkspp %>% filter(park==park_code) %>% 
+  arrange(-avg.cover, -qpct.freq, -plot.pfreq) %>% 
+  select(sppgroup, Common, plot.pfreq, qpct.freq, avg.cover) %>% slice(1:5)
+
+tot_results<-totinv_to_sentences("SAHI")
+guild_results<-guild_to_sentences("SAHI")
+spp_results<-spp_to_sentences("SAHI")
+no_trends <- length(unique(tot_results))+ length(unique(guild_results))+
+  length(unique(spp_results))
+```
+In the most recent cycle in `r site1$park_code`, at least one invasive species was detected in `r format(round(parkinv$plot.pfreq,1),nsmall=1)`\% of plots, and on average, `r format(round(parkinv$quad.pfreq,1),nsmall=1)`\% of quadrats had at least one invasive species and average total invasive cover was `r ifelse(parkinv$avg.cover< 0.01, paste0("<0.01"), format(round(parkinv$avg.cover, 1),nsmall=1))`\% (Table 1). The `r str_to_lower(parkguild$guild)` guild was the most abundant guild in `r site1$park_code`, found in `r format(round(parkguild$plot.pfreq,1),nsmall=1)`\% of plots, and averaging `r format(round(parkguild$quad.pfreq,1), nsmall = 1)`\% quadrat frequency, and `r ifelse(parkguild$avg.cover< 0.01, paste0("<0.01"),paste0(format(round(parkguild$avg.cover,1),nsmall=1)))`\% quadrat cover. The most abundant invasive species in `r site1$park_code` was `r paste0(parkspp$Common[1])` (<i>`r paste0(parkspp$sppgroup[1])`</i>), occurring in `r format(round(parkspp$plot.pfreq[1],1),nsmall=1)`\% of plots, and averaging `r format(round(parkspp$avg.cover[1],1),nsmall=1)` \% cover. `r str_to_sentence(paste0(parkspp$Common[2]))` (<i>`r paste0(parkspp$sppgroup[2])`</i>) was the second most abundant invasive species, occurring in `r parkspp$plot.pfreq[2]`\% of plots, and averaging `r parkspp$avg.cover[2]` \% cover. The next three most abundant invasive species in `r site1$park_code` were `r paste0(parkspp$Common[3])` (<i>`r paste0(parkspp$sppgroup[3])`</i>), `r paste0(parkspp$Common[4])` (<i>`r paste0(parkspp$sppgroup[4])`</i>), and `r paste0(parkspp$Common[5])` (<i>`r paste0(parkspp$sppgroup[5])`</i>).
+
+<h3>Trends</h3>
+The sample size in SAHI was insufficient to model trends.
+
+#### THST
+<h3>Status</h3>
+```{r, echo=F, include=F}
+library(tidyverse)
+site1<-siteinfo %>% filter(park_code=="THST") %>% droplevels()
+park_code<-as.character(site1$park_code)
+
+# Park-level status
+parkinv<-totinv %>% filter(park==park_code) %>% droplevels()
+
+parkguild<-guildinv %>% filter(park==park_code) %>% droplevels() %>% 
+  arrange(-avg.cover,-quad.pfreq,-plot.pfreq) %>% slice(1) 
+
+parkspp<-allparkspp %>% filter(park==park_code) %>% 
+  arrange(-avg.cover, -qpct.freq, -plot.pfreq) %>% 
+  select(sppgroup, Common, plot.pfreq, qpct.freq, avg.cover) %>% slice(1:5)
+
+tot_results<-totinv_to_sentences("THST")
+guild_results<-guild_to_sentences("THST")
+spp_results<-spp_to_sentences("THST")
+no_trends <- length(unique(tot_results))+ length(unique(guild_results))+
+  length(unique(spp_results))
+```
+In the most recent cycle in `r site1$park_code`, at least one invasive species was detected in `r format(round(parkinv$plot.pfreq,1),nsmall=1)`\% of plots, and on average, `r format(round(parkinv$quad.pfreq,1),nsmall=1)`\% of quadrats had at least one invasive species and average total invasive cover was `r ifelse(parkinv$avg.cover< 0.01, paste0("<0.01"), format(round(parkinv$avg.cover, 1),nsmall=1))`\% (Table 1). The `r str_to_lower(parkguild$guild)` guild was the most abundant guild in `r site1$park_code`, found in `r format(round(parkguild$plot.pfreq,1),nsmall=1)`\% of plots, and averaging `r format(round(parkguild$quad.pfreq,1), nsmall = 1)`\% quadrat frequency, and `r ifelse(parkguild$avg.cover< 0.01, paste0("<0.01"),paste0(format(round(parkguild$avg.cover,1),nsmall=1)))`\% quadrat cover. The most abundant invasive species in `r site1$park_code` was `r paste0(parkspp$Common[1])` (<i>`r paste0(parkspp$sppgroup[1])`</i>), occurring in `r format(round(parkspp$plot.pfreq[1],1),nsmall=1)`\% of plots, and averaging `r format(round(parkspp$avg.cover[1],1),nsmall=1)` \% cover. `r str_to_sentence(paste0(parkspp$Common[2]))` (<i>`r paste0(parkspp$sppgroup[2])`</i>) was the second most abundant invasive species, occurring in `r parkspp$plot.pfreq[2]`\% of plots, and averaging `r parkspp$avg.cover[2]` \% cover. The next three most abundant invasive species in `r site1$park_code` were `r paste0(parkspp$Common[3])` (<i>`r paste0(parkspp$sppgroup[3])`</i>), `r paste0(parkspp$Common[4])` (<i>`r paste0(parkspp$sppgroup[4])`</i>), and `r paste0(parkspp$Common[5])` (<i>`r paste0(parkspp$sppgroup[5])`</i>).
+
+<h3>Trends</h3>
+`r if(length(no_trends)==0){paste0('There were no significant trends in total invasive abundance, guild-level abundance, or species level abundance in ', park_code, '. ')}``r if(length(no_trends)>2){paste0('There were a total of ', length(no_trends), ' significant trends in invasive abundance in ', park_code,'. ')}`
+`r if(length(no_trends!=0) & length(tot_results)==0){paste0(' There were no significant trends in total invasive abundance.')}``r if(length(no_trends!=0) & length(tot_results)!=0){paste0(tot_results, collapse=' ')}``r if(length(no_trends!=0) & length(guild_results)==0){paste0('There were no significant guild-level trends.')}``r if(length(no_trends!=0) & length(guild_results)!=0){paste0(guild_results, collapse=' ')}` `r if(length(no_trends!=0) & length(spp_results)==0){paste0(' There were no significant species-level trends.')}``r if(length(no_trends!=0) & length(spp_results)!=0){paste0(spp_results, collapse=' ')}`
+
+### Literature Cited
+<h3><b>Literature Cited</h3></b>
+
+```{r, results='asis', echo=F, warning=F}
+cat(readLines('Literature_Cited.html'))
+```
+
+
