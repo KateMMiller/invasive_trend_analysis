@@ -163,6 +163,9 @@ colrkeep<- c("#ffe400","#cc0000","#cc00cc","#00cc00","#ff0000","#ffa366","#e65c0
 
 coefPlot(AC_S_sign, ylabel='Average Cover/ Cycle') # Shows species that are significant in at least 2 parks.
 
+ggsave('./results/figures/avgcov_species_slopes.jpg',coefPlot(AC_S_sign, ylabel='Average Cover/ Cycle'),
+       dpi=300, height=9, width=12)
+
 tiff(file='./results/figures/avgcov_species_slopes.tiff',units='px',width=12*ppi,height=9*ppi,res=300)
 coefPlot(AC_S_sign, ylabel='Average Cover/ Cycle')
 dev.off()
