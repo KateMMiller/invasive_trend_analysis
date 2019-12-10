@@ -86,7 +86,7 @@ analysis.title<-"Average % Invasive Cover by Species"
 # Model without transformation
 avgcov.mod<-function(df) {
   if (df$nlev[1]>1) {lmer(avg.cover ~ cycle*species + (1|plot_name),data=df)
-  } else {lmer(avg.cover~cycle+(1|plot_name),data=df)} 
+  } else {lmer(avg.cover~cycle+(1|plot_name/species),data=df)} 
   } # random slope had singular fit, so went with simpler rand. intercept
 
 prelim_by_park_AC_S<-df_park %>% mutate(model=map(data,avgcov.mod) %>% set_names(df_park$park),
@@ -203,7 +203,7 @@ results_final_AC_S<-results5_AC_S %>%
   
 head(results_final_AC_S)
 
-write.csv(results_final_AC_S,'./results/results_avecov-by_species-coefs_NP.csv', row.names=F)
+write.csv(results_final_AC_S,'./results/results_avecov-by_species-coefs_NP_rispp.csv', row.names=F)
 
 ##  ----  model_response_AC_S ---- 
 #-----------------------------------
@@ -262,4 +262,4 @@ respCIs_final_AC_S<-respCIs_final_AC_S %>%
   arrange(lat.rank,species,cycle)
 
 View(respCIs_final_AC_S)
-write.csv(respCIs_final_AC_S,"./results/results_avecov-by_species-response_NP.csv")
+write.csv(respCIs_final_AC_S,"./results/results_avecov-by_species-response_NP_rispp.csv")

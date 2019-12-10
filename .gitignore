@@ -2,15 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-data/
 results/
 ms/
 old_RMarkdown/
 backup_temp/
-RMarkdown_HTML/html_reports/
-RMarkdown_HTML/pdf_reports/
-RMarkdown_HTML/results/
-RMarkdown_HTML/contact_info.csv
-RMarkdown_HTML/ah_small_flat_4c_blackbkgr_k100.jpg
-RMarkdown_HTML/map_of_parks.mxd
-RMarkdown_HTML/MORR_019_20170529_barberry.jpg
+RMarkdown_HTML/

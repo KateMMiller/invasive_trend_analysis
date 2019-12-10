@@ -36,7 +36,9 @@ names(invlist)
 inv_park2<-merge(inv_park, invlist[,c('Latin_Name','Common','Guild')], by.x='sppgroup',by.y='Latin_Name', all.x=T)
 
 # Summary tables for each metric to be included in supplemental material
-inv_park_pf<-inv_park2 %>% select (park, sppgroup, Common, Guild, plot.pfreq) %>% spread(park, plot.pfreq, fill=0)
+inv_park3<-merge(park_info, inv_park2, by="park", all.x=T, all.y=T)
+inv_park3<-inv_park3 %>% mutate(park=fct_reorder(park,-lat.rank)) %>% arrange(park,sppgroup)
+inv_park_pf<-inv_park3 %>% select (park, sppgroup, Common, Guild, plot.pfreq) %>% spread(park, plot.pfreq, fill=0)
 write.csv(inv_park_pf, "./results/status/Species_plot_frequency_by_park.csv", row.names=F)
 
 inv_park_ac<-inv_park2 %>% select (park, sppgroup, Common, Guild, avg.cover) %>% spread(park, avg.cover, fill=0)
