@@ -12,15 +12,14 @@ params:
 National Capital Region Network {.tabset .tabset-fade}
 ------------------------------------
 ### Background 
-
 <h3><b>Background</h3></b>
 ```{r site_info, echo=F, include=F, cache=F}
 library(tidyverse)
 siteinfo<-read.csv('site_info_NETN-MIDN-ERMN-NCRN.csv')
-site<-siteinfo %>% filter(network_code==params$network_code) %>% droplevels()
+site<-siteinfo %>% filter(network_code==params$network_code) %>% droplevels %>% unique()
 network<-as.character(unique(site$network))
 contactinfo<-read.csv('contact_info.csv')
-contact<-contactinfo %>% filter(network_code==network) %>% droplevels()
+contact<-contactinfo %>% filter(network_code==params$network_code) %>% droplevels() %>% unique()
 source('trend_summary_functions.R')
 ```
 <div style="float:right;position:relative;top:10px;padding:5px 5px 5px 10px;margin:0px 5px 10px 5px">
@@ -32,13 +31,24 @@ knitr::include_graphics('map_of_parks.jpg')
 cat(readLines('Background.html'))
 ```
 This document summarizes results for the `r unique(site$network)` (`r unique(site$network_code)`).
+<br>
+<br>
+<h3><b>More Information</b></h3>
+Additional information about the Eastern Forest Working Group can be found on the <a href="https://www.researchgate.net/project/Forest-Monitoring-in-National-Park-Units-of-the-Eastern-USA">EFWG ResearchGate Project</a>. More information on network-specific forest monitoring can be found on the <a href="`r contact$website`">`r unique(site$network_code)` website</a>. Questions about this study can be directed to `r contact$name1`, `r contact$email1`, or  `r contact$name2`, `r contact$email2`.
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 ### Methods
 <h3><b>Methods</h3></b>
-
 ```{r, results='asis', echo=F}
 cat(readLines('Methods.html'))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 ### Results {.tabset}
 
@@ -56,7 +66,7 @@ knitr::kable(parkstatus[,-3], caption=figcap, format='html', align=c('c','c','c'
              kableExtra::column_spec(3, width="0.65in")
 ```
 </div>
-
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 Invasive species are widespread in eastern national parks. In 35 out of the 39 parks in this study, more than half of the plots in a given park had at least one invasive species, and in ten parks every plot had at least one invasive species present. In 21 out of 39 parks, at least one invasive species occurred in 50% or more of the quadrats in each plot. Average cover of invasives was over 20% in 10 out of 39 parks. The 5 parks with the highest invasive abundance were Monocacy National Battlefield (MONO), Antietam National Battlefield (ANTI), Friendship Hill National Historic Site (FRHI), Morristown National Historical Park (MORR), and Chesapeake and Ohio Canal National Historical Park (CHOC), with each park averaging more than 30% invasive cover (Table 1). The least invaded parks were Acadia National Park (ACAD), Marsh-Billings-Rockefeller National Historical Park (MABI), Fredericksburg \& Spotsylvania National Military Park (FRSP), Prince William Forest Park (PRWI), and Saint-Gaudens National Historical Park (SAGA), with all but SAGA averaging less than 1\% invasive cover.
 
@@ -66,7 +76,7 @@ Present in over 30% of the plots and 85% of the parks in this study, Japanese st
 <h3>Trends</h3>
 Overall, increasing trends in invasive abundance were much more common than decreasing trends. In 30 out of the 37 parks analyzed for trends, we detected at least one significant increasing trend in invasive abundance, and 22 parks had five or more significant increases in invasive abundance. Japanese stiltgrass (<i>Microstegium vimineum</i>) had the most number of significant increases, with increases in plot frequency in five parks, quadrat frequency in twelve parks, and average cover in twelve parks. Invasive shrubs also increased in multiple parks, particularly in the northern parks in this study, where dense thickets can occur. The few signifcant declines that we detected were typically herbaceous species or Japanese stiltgrass (<i>Microstegium vimineum</i>), and they were often met with a roughly equivalent increase by another species and/or guild, especially invasive shrubs. 
 
-Only two parks in our study showed overall declines in invasive abundance: PRWI and MABI. In both parks, only significant negative trends in invasive abundance were detected, and both parks had relatively low invasive abundance at the start of monitoring. Three additional parks had low invasive abundance throughout the study period and did not have any significant increasing trends: ACAD, Colonial National Historical Park (COLO), SAGA. While invasive abundance is relatively low in these five parks, the species that are present, such as Japanese barberry (<i>Berberis thunbergii</i>) and Japanese stiltgrass (<i>Microstegium vimineum</i>), occupy very high abundance and have expanded rapidly in other parks in our study.
+Only two parks in our study showed overall declines in invasive abundance: PRWI and MABI. In both parks, only significant negative trends in invasive abundance were detected, and both parks had relatively low invasive abundance at the start of monitoring. Two additional parks had low invasive abundance throughout the study period and did not have any significant increasing trends: ACAD and SAGA. While invasive abundance is relatively low in these four parks, the species that are present, such as Japanese barberry (<i>Berberis thunbergii</i>) and Japanese stiltgrass (<i>Microstegium vimineum</i>), occupy very high abundance and have expanded rapidly in other parks in our study.
 
 <div style="float:right;position:relative;padding:5px 5px 20px 10px;margin:0px 5px 20px 5px">
 ```{r, echo=F}
@@ -78,8 +88,13 @@ knitr::kable(sppstatus,caption='Table 2. Top ten most common species across park
              kableExtra::column_spec(3:4, width="0.651in") 
 ```
 </div>
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### ANTI
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -117,14 +132,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "ANTI",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### CATO
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -162,14 +183,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "CATO",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### CHOH
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -208,14 +235,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "CHOH",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### GWMP
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -253,14 +286,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "GWMP",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### HAFE
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -298,14 +337,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "HAFE",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### MANA
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -343,14 +388,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "MANA",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### MONO
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -388,14 +439,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "MONO",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### NACE
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -433,14 +490,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "NACE",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### PRWI
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -478,14 +541,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "PRWI",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### ROCR
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -523,14 +592,20 @@ plot_ac<-quaddf_park_by_guild(AC_guild_resp, "Average % Cover", "ROCR",
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 #### WOTR
+<h3 class='title'><b>Results</h3></b>
 <h3>Status</h3>
 ```{r, echo=F, include=F}
 library(tidyverse)
@@ -564,7 +639,7 @@ WOTR_qfreq_by_guild<-function(df, title){
           geom_line(aes(y=qfreq, x=factor(cycle), colour=factor(guild)), na.rm=TRUE, linetype='dashed')+
           geom_point(aes(y=qfreq, x=factor(cycle), colour=factor(guild)), shape=21, 
                      size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
-          scale_color_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+          scale_color_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
           theme_bw()+
           theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
                 plot.margin=unit(c(1,1,1,1),'lines'),
@@ -585,7 +660,7 @@ WOTR_avgcov_by_guild<-function(df, title){
           geom_line(aes(y=avgcov, x=factor(cycle), colour=factor(guild)), na.rm=TRUE, linetype='dashed')+
           geom_point(aes(y=avgcov, x=factor(cycle), colour=factor(guild)), shape=21, 
                      size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
-          scale_color_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+          scale_color_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
           theme_bw()+
           theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
                 plot.margin=unit(c(1,1,1,1),'lines'),
@@ -608,7 +683,7 @@ WOTR_plotfreq_by_guild<-function(df, title, ylabels){
           geom_point(aes(y=pfreq, x=factor(cycle), colour=factor(guild)), shape=21, 
                      size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
           #      scale_fill_manual(values=c('white'))+
-          scale_color_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+          scale_color_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
           theme_bw()+
           theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
                 plot.margin=unit(c(1,1,1,1),'lines'),
@@ -636,18 +711,46 @@ plot_ac<-WOTR_avgcov_by_guild(WOTR_guild, "Average % Cover")
 leg<-cowplot::get_legend(ggplot(data=QF_guild_resp, 
                                 aes(x=cycle, y=mean, group=guild, fill=guild))+
       geom_point(aes(fill=guild),shape=21, size=4)+labs(fill='Guild')+
-        theme(legend.background = element_rect(color=NA, fill=NA))+
-      scale_fill_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+        theme(legend.background = element_rect(color=NA, fill=NA), legend.key = element_blank())+
+      scale_fill_manual(values=c(IndianRed,ForestGreen,Gold,RoyalBlue))+
+        theme(legend.text = element_text(size=10), legend.title = element_text(size=10, face='bold'))+
       guides(shape=T)+guides(fill=guide_legend(direction='horizontal')))
 
 return(grid.arrange(arrangeGrob(plot_pf, plot_qf, plot_ac, padding=cm(0.2),ncol=3), heights=c(5,1),leg, nrow=2))
 ```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
+
+### Discussion
+<h3 class='title'><b>Discussion</h3></b>
+
+```{r, results='asis', echo=F, warning=F}
+cat(readLines('Discussion.html'))
+```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
+
+### Acknowledgements
+<h3 class='title'><b>Acknowledgements</b></h3>
+```{r, results='asis', echo=F, warning=F}
+cat(readLines('Acknowledgements.html'))
+```
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
+
 
 ### Literature Cited
-<h3><b>Literature Cited</h3></b>
+<h3 class='title'><b>Literature Cited</h3></b>
 
 ```{r, results='asis', echo=F, warning=F}
 cat(readLines('Literature_Cited.html'))
 ```
-
+```{r, results='asis', echo=F}
+cat(readLines('footer.html'))
+```
 

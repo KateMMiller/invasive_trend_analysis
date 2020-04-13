@@ -4,6 +4,13 @@
 library(tidyverse)
 library(gridExtra)
 
+# Color Hex Codes, since HTML color names 
+# aren't working anymore.
+ForestGreen <- "#228B22"
+Gold <- "#FFD700"
+IndianRed <- "#CD5C5C"
+RoyalBlue <- "#4169E1"
+
 # Total invasives trends
 plot_freq_tot<-read.csv('./results/results_PFreq-total-coefs.csv')
 quad_freq_tot<-read.csv('./results/results_qfreq-total-coefs_NP.csv')
@@ -15,7 +22,7 @@ quad_freq_guild<-read.csv('./results/results_qfreq-by_guild-coefs_NP.csv')
 avg_cov_guild<-read.csv('./results/results_avecov-by_guild-coefs_NP.csv')
 
 # Species level trends
-invlist<-read.csv('./results/Invasive_List.csv')[,c('Latin_Name','Common')]
+invlist<-read.csv('../data/Invasive_List.csv')[,c('Latin_Name','Common')]
 plot_freq_spp<-read.csv('./results/results_PFreq-by_species-coefs.csv')
 quad_freq_spp<-read.csv('./results/results_qfreq-by_species-coefs_NP.csv')
 avg_cov_spp<-read.csv('./results/results_avecov-by_species-coefs_NP.csv')
@@ -195,7 +202,7 @@ quaddf_park_by_guild<-function(df, title, park_code, ylabels){
                      size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
           #      scale_fill_manual(values=c('white'))+
           scale_linetype_manual(values=c('dashed','solid'))+
-          scale_color_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+          scale_color_manual(values=c(IndianRed, ForestGreen, Gold, RoyalBlue))+
           theme_bw()+
           theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
                 plot.margin=unit(c(1,1,1,1),'lines'),
@@ -219,7 +226,7 @@ plotfreq_park_by_guild<-function(df, title, park_code, ylabels){
                      size=1.8, stroke=1.5, fill='white', na.rm=TRUE)+
           #      scale_fill_manual(values=c('white'))+
           scale_linetype_manual(values=c('dashed','solid'))+
-          scale_color_manual(values=c('IndianRed','ForestGreen','Gold','RoyalBlue'))+
+          scale_color_manual(values=c(IndianRed, ForestGreen, Gold, RoyalBlue))+
           theme_bw()+
           theme(axis.text=element_text(size=11),axis.title=element_text(size=12),
                 plot.margin=unit(c(1,1,1,1),'lines'),
