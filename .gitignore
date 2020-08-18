@@ -7,7 +7,16 @@ ms/
 old_RMarkdown/
 backup_temp/
 RMarkdown_HTML/
+data/
 data/NETN
 data/ERMN
 data/MIDN
 data/NCRN
+NPS_briefs/
+map_of_parks.mxd
+map_of_parks_invstatus.mxd
+RMarkdown_tabsets/*.csv
+RMarkdown_tabsets/*.html
+scripts/03_Plotting_for_NETN_only.R
+scripts/backup_scripts/
+scripts/code_for_review.R
