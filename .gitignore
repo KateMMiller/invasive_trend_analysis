@@ -9,7 +9,7 @@ data/NETN
 data/ERMN
 data/MIDN
 data/NCRN
-data/NETN-MIDN-ERMN-NCRN_total_invasives.csv
+data/*.csv
 NPS_briefs/
 map_of_parks.mxd
 map_of_parks_invstatus.mxd
